@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+package tee;
+
+import "kubetee.proto";
+import "aecs.proto";
+
+message KubeConfig {
+  optional string name = 1;
+  optional string identity_key = 2;
+  optional string client_key = 3;
+  optional string client_cert = 4;
+  optional string client_ca = 5;
+  optional string server_endpoint = 6;
+  optional EnclaveMatchRules server_info = 7;
+}
+
+message SecretsParseResult {
+  repeated EnclaveSecret secrets = 1;
+}

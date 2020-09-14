@@ -1,0 +1,49 @@
+// protobuffer version: 3.7.1
+// grpc version: 1.19.1
+
+syntax = "proto2";
+
+import "aecs.proto";
+
+package tee;
+
+
+service Aecs {
+// -----------------------------------------------------------
+// AECS identity interfaces
+// -----------------------------------------------------------
+
+  // For sync RSA identity key pair and aes key between two AECS nodes
+  rpc GetRemoteSecret(GetRemoteSecretRequest)
+    returns (GetRemoteSecretResponse) {
+  }
+
+// -----------------------------------------------------------
+// AECS administrator interfaces
+// -----------------------------------------------------------
+
+  // For wrapper channel to call remote trusted function from
+  // AECS admin client to AECS server
+  rpc AecsAdminRemoteCall(AdminRemoteCallRequest)
+    returns (AdminRemoteCallResponse) {
+  }
+
+// -----------------------------------------------------------
+// Service administrator interfaces
+// -----------------------------------------------------------
+
+  // For wrapper channel to call remote trusted function from
+  // AECS admin client to AECS server
+  rpc ServiceAdminRemoteCall(AdminRemoteCallRequest)
+    returns (AdminRemoteCallResponse) {
+  }
+
+// -----------------------------------------------------------
+// Business service interfaces
+// -----------------------------------------------------------
+
+  // Get the enclave secret based on RA
+  rpc GetEnclaveSecret(GetEnclaveSecretRequest)
+    returns (GetEnclaveSecretResponse) {
+  }
+}

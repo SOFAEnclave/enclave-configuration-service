@@ -1,0 +1,4 @@
+{
+  "aecs_admin_pubkey": "<base64-of-admin-public-pem>",
+  "storage_backend_lib": "./libstorage_backend.so"
+}

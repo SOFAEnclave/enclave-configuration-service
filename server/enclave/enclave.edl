@@ -1,0 +1,6 @@
+/* Enclave.edl - Top EDL file. */
+
+enclave {
+    from "sgx_tsgxssl.edl" import *;
+    from "kubetee.edl" import *;
+};

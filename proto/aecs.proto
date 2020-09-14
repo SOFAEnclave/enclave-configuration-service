@@ -1,0 +1,224 @@
+// protobuffer version: 3.7.1
+// grpc version: 1.19.1
+
+syntax = "proto2";
+
+import "kubetee.proto";
+
+package tee;
+
+enum EnclaveSecretType {
+  SECRET_TYPE_RSA_KEY_PAIR = 0;
+  SECRET_TYPE_AES256_KEY = 1;
+  // Max length of import-type secret is 4096
+  SECRET_TYPE_IMPORT_DATA = 2;
+  // certificate type is not supported yet
+  SECRET_TYPE_CERTIFICATE = 3;
+}
+
+message EnclaveSecretPolicy {
+  optional EnclaveMatchRules rules = 1;
+}
+
+message EnclaveSecretSpec {
+  optional string secret_name = 1;
+  optional string service_name = 2;
+  optional EnclaveSecretType type = 3;
+  optional EnclaveSecretPolicy policy = 4;
+}
+
+// EnclaveSecret will be used when create secret or
+// when save the secret into back-end storage
+message EnclaveSecret {
+  optional EnclaveSecretSpec spec = 1;
+  optional bytes data = 2;
+}
+
+message RsaKeyPair {
+  optional string private_key = 1;
+  optional string public_key = 2;
+}
+
+message AdminSecrets {
+  optional string public_key = 1;
+  // SHA256 of the admin password
+  // TODO(junxian) add password authentication
+  // and avoid the replay attack
+  //optional string password_hash = 2;
+}
+
+message AecsServerSecrets {
+  optional KeyPair identity = 1;
+  optional StorageAuth storage_auth = 2;
+  optional AdminSecrets admin = 3;
+}
+
+message StorageAuth {
+  // The following items are optional and only used for Alibaba Cloud OSS
+  optional string access_key_id = 1;
+  optional string access_key_secret = 2;
+  optional string endpoint = 3;
+  optional string bucket_name = 4;
+}
+
+message StorageCreateRequest {
+  optional StorageAuth auth = 1;
+  optional string name = 2;
+  optional bytes value = 3;
+}
+
+message StorageCreateResponse {
+}
+
+message StorageDeleteRequest {
+  optional StorageAuth auth = 1;
+  optional string pattern = 2;
+}
+
+message StorageDeleteResponse {
+}
+
+message StorageListAllRequest {
+  optional StorageAuth auth = 1;
+  optional string pattern = 2;
+}
+
+message StorageListAllResponse {
+  repeated string names= 1;
+}
+
+message StorageCheckExistRequest {
+  optional StorageAuth auth = 1;
+  optional string name = 2;
+}
+
+message StorageCheckExistResponse {
+  optional bool exist = 1;
+}
+
+message StorageGetValueRequest {
+  optional StorageAuth auth = 1;
+  optional string name = 2;
+}
+
+message StorageGetValueResponse {
+  optional bytes value = 1;
+}
+
+message GetRemoteSecretRequest {
+  optional RaReportAuthentication auth_ra_report = 1;
+}
+
+message GetRemoteSecretResponse {
+  optional RaReportAuthentication auth_ra_report = 1;
+  // the digital envelope of serialized AecsServerSecrets
+  optional DigitalEnvelopeEncrypted secret_keys_enc = 2;
+}
+
+message AecsAdminInitializeRequest {
+  optional AdminSecrets admin = 1;
+}
+
+message AecsAdminInitializeResponse {
+}
+
+// The remote call for both AECS administrator and service administrator
+// The only difference is which public key is used to do authentication
+message AdminRemoteCallRequest {
+  optional string function_name = 1;
+  // For service admin requests, the aes AAD is the service name
+  // 1. We don't add the service name outside req_enc, if so, we cannot
+  // know the service name is legal or not.
+  // 2. And we should only use the verified service name from this field.
+  // 3. We don't add servcie name in other request because we need the
+  // service name to find the related public key and verify the req_enc,
+  // we must get service name before decrypt the serialized request string.
+  optional DigitalEnvelopeEncrypted req_enc = 3;
+}
+
+message AdminRemoteCallResponse {
+  optional string error_message = 1;
+  optional RaReportAuthentication auth_ra_report = 2;
+  optional DigitalEnvelopeEncrypted res_enc = 3;
+  // In some case, for example, when provision, use seal API to protect secret
+  optional bytes sealed_secret = 4;
+}
+
+message RegisterEnclaveServiceRequest {
+  optional string service_name = 1;
+  optional string service_pubkey = 2;
+}
+
+message RegisterEnclaveServiceResponse {
+}
+
+message UnregisterEnclaveServiceRequest {
+  optional string service_name = 1;
+}
+
+message UnregisterEnclaveServiceResponse {
+}
+
+message ListEnclaveServiceRequest {
+  optional string service_name = 1;
+}
+
+message ListEnclaveServiceResponse {
+  optional StorageListAllResponse list_res = 1;
+}
+
+message AecsProvisionRequest {
+  optional StorageAuth auth = 1;
+  // host_name is used for the identity key backup name in storage
+  optional string host_name = 2;
+}
+
+message AecsProvisionResponse {
+}
+
+message GetIdentityPublicKeyRequest {
+  optional string service_name = 1;
+  optional SignatureAuthentication auth_signature = 2;
+}
+
+message GetIdentityPublicKeyResponse {
+  optional RaReportAuthentication auth_ra_report = 1;
+}
+
+message CreateEnclaveSecretRequest {
+  // data is only provided for SECRET_TYPE_IMPORT_DATA type
+  // The whole interfaces request will be wrapped by
+  // the RemoteCall encrypt/authentication/decrypt flow
+  // So just plain secret data here
+  optional EnclaveSecret secret = 1;
+}
+
+message CreateEnclaveSecretResponse {
+}
+
+message DestroyEnclaveSecretRequest {
+  optional string secret_name = 1;
+}
+
+message DestroyEnclaveSecretResponse {
+}
+
+message ListEnclaveSecretRequest {
+  optional string secret_name = 1;
+}
+
+message ListEnclaveSecretResponse {
+  repeated EnclaveSecretSpec secrets = 1;
+}
+
+message GetEnclaveSecretRequest {
+  optional RaReportAuthentication auth_ra_report = 1;
+  optional string service_name = 2;
+  optional string secret_name = 3;
+}
+
+message GetEnclaveSecretResponse {
+  optional RaReportAuthentication auth_ra_report = 1;
+  optional DigitalEnvelopeEncrypted secret_enc = 2;
+}
+

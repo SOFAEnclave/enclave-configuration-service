@@ -1,0 +1,23 @@
+{
+  "ias_url": "https://api.trustedservices.intel.com/sgx/dev/attestation/v4",
+  "ias_access_key": "",
+  "ias_response_cache": "disable",
+  "ias_response_file": "",
+  "enclave_user_data": "",
+  "enclave_spid": "<32byte-SPID>",
+  "enclave_identity_cache": "disable",
+  "enclave_identity_file": "",
+  "verify_mrenclave": "",
+  "verify_prodid": "",
+  "verify_min_svn": "",
+  "verify_mrsigner": "83D719E77DEACA1470F6BAF62A4D774303C899DB69020F9C70EE1DFC08C7CE9E",
+  "verify_spid": "<32byte-SPID>00000000000000000000000000000000",
+  "verify_user_hash": "",
+  "rpc_remote_server": "",
+  "rpc_remote_port": "19666",
+  "rpc_server": "",
+  "rpc_port": "19668",
+  "rpc_ca_path": "/etc/certs/ca.crt",
+  "rpc_cert_path": "/etc/certs/test1.crt",
+  "rpc_key_path": "/etc/certs/test1.key"
+}
