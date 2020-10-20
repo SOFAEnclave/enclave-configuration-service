@@ -33,9 +33,10 @@ TeeErrorCode StorageTrustedBridge::SetAuth(const tee::StorageAuth& auth) {
   return TEE_SUCCESS;
 }
 
-TeeErrorCode StorageTrustedBridge::Create(const std::string& name,
-                                          const std::string& value,
-                                          const bool identity_encrypt) {
+TeeErrorCode StorageTrustedBridge::StorageCreate(const std::string& name,
+                                                 const std::string& value,
+                                                 const bool force_create,
+                                                 const bool identity_encrypt) {
   std::string value_str;
   if (identity_encrypt) {
     // Envelop encrypt the value by identity public key
@@ -55,9 +56,24 @@ TeeErrorCode StorageTrustedBridge::Create(const std::string& name,
   req.mutable_auth()->CopyFrom(auth_);
   req.set_name(name);
   req.set_value(value_str);
+  req.set_force(force_create);
   TeeInstance& ti = TeeInstance::GetInstance();
   TEE_CHECK_RETURN(ti.ReeRun("ReeStorageCreate", req, &res));
 
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode StorageTrustedBridge::Create(const std::string& name,
+                                          const std::string& value,
+                                          const bool identity_encrypt) {
+  TEE_CHECK_RETURN(StorageCreate(name, value, false, identity_encrypt));
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode StorageTrustedBridge::Update(const std::string& name,
+                                          const std::string& value,
+                                          const bool identity_encrypt) {
+  TEE_CHECK_RETURN(StorageCreate(name, value, true, identity_encrypt));
   return TEE_SUCCESS;
 }
 

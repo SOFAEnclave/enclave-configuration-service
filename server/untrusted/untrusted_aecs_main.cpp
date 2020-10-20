@@ -33,9 +33,12 @@ int SGX_CDECL main(void) {
   tee::AecsAdminInitializeRequest req;
   tee::AecsAdminInitializeResponse res;
   tee::common::DataBytes public_key(AECS_CONF_STR(kAecsConfAdminPubKey));
-  tee::AdminSecrets* admin = req.mutable_admin();
-  admin->set_public_key(public_key.FromBase64().GetStr());
-  if (admin->public_key().empty()) {
+  std::string password_hash = AECS_CONF_STR(kAecsConfAdminPasswordHash);
+  tee::AdminAuth* aecs_admin_auth = req.mutable_admin();
+  aecs_admin_auth->set_public_key(public_key.FromBase64().GetStr());
+  aecs_admin_auth->set_password_hash(password_hash);
+  aecs_admin_auth->set_sequence(0);
+  if (aecs_admin_auth->public_key().empty()) {
     TEE_LOG_ERROR("Fail to convert the base64 public key");
     return TEE_ERROR_UNEXPECTED;
   }

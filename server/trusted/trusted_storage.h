@@ -25,6 +25,9 @@ class StorageTrustedBridge {
   TeeErrorCode Create(const std::string& name,
                       const std::string& value,
                       const bool identity_encrypt = true);
+  TeeErrorCode Update(const std::string& name,
+                      const std::string& value,
+                      const bool identity_encrypt = true);
   TeeErrorCode Delete(const std::string& pattern);
   TeeErrorCode GetValue(const std::string& name,
                         std::string* value,
@@ -38,6 +41,11 @@ class StorageTrustedBridge {
   StorageTrustedBridge() {}
   StorageTrustedBridge(const StorageTrustedBridge&);
   void operator=(StorageTrustedBridge const&);
+
+  TeeErrorCode StorageCreate(const std::string& name,
+                             const std::string& value,
+                             const bool force_create,
+                             const bool identity_encrypt);
 
   tee::StorageAuth auth_;
 };

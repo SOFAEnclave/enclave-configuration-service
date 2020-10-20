@@ -54,7 +54,7 @@ static const char kStoragePrefixIdentity[] = "aecs_identity_key_";
 
 static constexpr size_t kMaxSecretLength = 10240;
 
-static tee::AdminSecrets kAdminSecret;
+static tee::AdminAuth kAecsAdminAuth;
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,11 +62,12 @@ extern "C" {
 
 static TeeErrorCode VerifyAecsEnclave(const RaReportAuthentication& auth) {
   // Verify the remote enclave MRSIGNER and PRODID
-  // Don't need the same MRENCLAVE in case connection from upgraded version
+  // Don't need the same MRENCLAVE/ISVSVN in case connection from different version
   tee::EnclaveMatchRules rules;
   tee::EnclaveInformation* rule = rules.add_entries();
   rule->CopyFrom(TeeInstance::GetInstance().GetEnclaveInfo());
   rule->clear_hex_mrenclave();
+  rule->clear_hex_min_isvsvn();
   tee::common::RaChallenger verifier(auth.public_key(), rules);
   TEE_CHECK_RETURN(verifier.VerifyReport(auth.ias_report()));
   return TEE_SUCCESS;
@@ -84,7 +85,7 @@ TeeErrorCode VerifySecretPolicy(const RaReportAuthentication& auth,
 static TeeErrorCode VerifyAecsAdmin(const DigitalEnvelopeEncrypted& env) {
   tee::common::RsaCrypto rsa;
   TEE_CHECK_RETURN(rsa.Verify(
-      kAdminSecret.public_key(), env.plain_hash(), env.plain_hash_sig()));
+      kAecsAdminAuth.public_key(), env.plain_hash(), env.plain_hash_sig()));
   return TEE_SUCCESS;
 }
 
@@ -123,13 +124,53 @@ static TeeErrorCode EnvelopeDecryptAndVerify(
   return TEE_SUCCESS;
 }
 
-static TeeErrorCode InitializeAecsAdmin(const tee::AdminSecrets& admin) {
+static TeeErrorCode DecryptAndVerifyRemoteRequest(
+    const tee::DigitalEnvelopeEncrypted& env,
+    tee::AdminAuth* auth,
+    std::string* req) {
+  // Decrypt the encrypted request (AdminRemoteCallReqWithAuth)
+  std::string remote_call_req_str;
+  TEE_CHECK_RETURN(
+      EnvelopeDecryptAndVerify(auth->public_key(), env, &remote_call_req_str));
+  tee::AdminRemoteCallReqWithAuth remote_call_req;
+  PB_PARSE(remote_call_req, remote_call_req_str);
+
+  // Do password authentication after it is set.
+  if (!auth->password_hash().empty()) {
+    ELOG_DEBUG("AECS admin request with password authentication");
+    if (remote_call_req.password_hash() != auth->password_hash()) {
+      ELOG_ERROR("Invalid password authentication");
+      return TEE_ERROR_PARAMETERS;
+    }
+  } else {
+    ELOG_DEBUG("No password authentication");
+  }
+
+  // Check sequence number
+  ELOG_DEBUG("AECS admin request sequence: %ld/%ld",
+             remote_call_req.sequence(),
+             auth->sequence());
+  if (remote_call_req.sequence() <= auth->sequence()) {
+    ELOG_ERROR("Invalid sequence number in AECS admin request");
+    return TEE_ERROR_PARAMETERS;
+  } else {
+    // Add AECS admin request sequence number in server side
+    int curr_seq = auth->sequence();
+    int64_t next_seq = curr_seq ? (curr_seq + 1) : remote_call_req.sequence();
+    auth->set_sequence(next_seq);
+  }
+
+  req->assign(remote_call_req.req());
+  return TEE_SUCCESS;
+}
+
+static TeeErrorCode InitializeAecsAdmin(const tee::AdminAuth& admin) {
   if (admin.public_key().empty()) {
     ELOG_ERROR("Empty AECS administrator public key");
     return TEE_ERROR_PARAMETERS;
   }
 
-  kAdminSecret = admin;
+  kAecsAdminAuth = admin;
   return TEE_SUCCESS;
 }
 
@@ -148,7 +189,7 @@ TeeErrorCode TeeGetRemoteSecret(const std::string& req_str,
       TeeInstance::GetInstance().GetIdentity());
   secrets.mutable_storage_auth()->CopyFrom(
       StorageTrustedBridge::GetInstance().GetAuth());
-  secrets.mutable_admin()->CopyFrom(kAdminSecret);
+  secrets.mutable_admin()->CopyFrom(kAecsAdminAuth);
   std::string secrets_str;
   PB_SERIALIZE(secrets, &secrets_str);
 
@@ -208,10 +249,18 @@ TeeErrorCode AecsAdminRegisterEnclaveService(const std::string& req_str,
   tee::RegisterEnclaveServiceResponse res;
   PB_PARSE(req, req_str);
 
-  // Create the service admin public key object
+  // Create the service admin authentication object
+  tee::AdminAuth service_auth;
+  service_auth.set_public_key(req.service_pubkey());
+  service_auth.set_password_hash(req.service_password_hash());
+  service_auth.set_sequence(0);
+  std::string service_auth_str;
+  PB_SERIALIZE(service_auth, &service_auth_str);
+
+  // Write the service admin authentication object
   std::string pubkey_name = req.service_name() + kStorageSuffixServicePubKey;
   StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
-  TEE_CHECK_RETURN(storage.Create(pubkey_name, req.service_pubkey()));
+  TEE_CHECK_RETURN(storage.Create(pubkey_name, service_auth_str));
 
   PB_SERIALIZE(res, res_str);
   return TEE_SUCCESS;
@@ -317,8 +366,6 @@ TeeErrorCode TeeAecsAdminRemoteCall(const std::string& req_str,
       {"UnregisterEnclaveService", AecsAdminUnregisterEnclaveService},
       {"ListEnclaveService", AecsAdminListEnclaveService},
       {"AecsProvision", AecsProvision}};
-  static size_t admin_remote_call_sequence = 0;
-
   tee::AdminRemoteCallRequest req;
   tee::AdminRemoteCallResponse res;
   PB_PARSE(req, req_str);
@@ -334,8 +381,8 @@ TeeErrorCode TeeAecsAdminRemoteCall(const std::string& req_str,
 
   // Decrypt and verify the encrypted request
   std::string freq_str;
-  TEE_CHECK_RETURN(EnvelopeDecryptAndVerify(
-      kAdminSecret.public_key(), req.req_enc(), &freq_str));
+  TEE_CHECK_RETURN(
+      DecryptAndVerifyRemoteRequest(req.req_enc(), &kAecsAdminAuth, &freq_str));
 
   // Call the real trusted function
   if (functions.find(name) == functions.end()) {
@@ -352,7 +399,7 @@ TeeErrorCode TeeAecsAdminRemoteCall(const std::string& req_str,
     // Encrypt by AECS admin public key and sign by identity private key
     DigitalEnvelopeEncrypted* res_enc = res.mutable_res_enc();
     TEE_CHECK_RETURN(
-        EnvelopeEncryptAndSign(kAdminSecret.public_key(), fres_str, res_enc));
+        EnvelopeEncryptAndSign(kAecsAdminAuth.public_key(), fres_str, res_enc));
   } else {
     ELOG_DEBUG("No response from %s", name.c_str());
   }
@@ -500,23 +547,28 @@ TeeErrorCode TeeServiceAdminRemoteCall(const std::string& req_str,
   ELOG_INFO("ServiceAdminRemoteCall: function:%s", function_name.c_str());
   ELOG_INFO("ServiceAdminRemoteCall: service:%s", service_name.c_str());
 
-  // Get the administrator public key
-  std::string apk;
+  // Get the service administrator authentication settings from storage
+  std::string service_auth_str;
+  std::string service_auth_name = service_name + kStorageSuffixServicePubKey;
   StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
-  TEE_CHECK_RETURN(
-      storage.GetValue(service_name + kStorageSuffixServicePubKey, &apk));
+  TEE_CHECK_RETURN(storage.GetValue(service_auth_name, &service_auth_str));
+  tee::AdminAuth service_auth;
+  PB_PARSE(service_auth, service_auth_str);
 
   // If just to get identity public key, return after authentication
   // The untrusted code will append the RA report and public key
   if (function_name == "GetIdentityPublicKey") {
-    TEE_CHECK_RETURN(VerifyAdminSignature(apk, req.req_enc()));
+    TEE_CHECK_RETURN(
+        VerifyAdminSignature(service_auth.public_key(), req.req_enc()));
     ELOG_DEBUG("Get identity public key, success authentication");
     return TEE_SUCCESS;
   }
 
   // Decrypt and verify the encrypted request
   std::string freq_str;
-  TEE_CHECK_RETURN(EnvelopeDecryptAndVerify(apk, req.req_enc(), &freq_str));
+  TEE_CHECK_RETURN(
+      DecryptAndVerifyRemoteRequest(req.req_enc(), &service_auth, &freq_str));
+  TEE_CHECK_RETURN(storage.Update(service_auth_name, service_auth_str));
 
   // Call the real trusted function
   if (functions.find(function_name) == functions.end()) {
@@ -532,7 +584,8 @@ TeeErrorCode TeeServiceAdminRemoteCall(const std::string& req_str,
   if (!fres_str.empty()) {
     // Encrypt by AECS admin public key and sign by identity private key
     DigitalEnvelopeEncrypted* res_enc = res.mutable_res_enc();
-    TEE_CHECK_RETURN(EnvelopeEncryptAndSign(apk, fres_str, res_enc));
+    TEE_CHECK_RETURN(
+        EnvelopeEncryptAndSign(service_auth.public_key(), fres_str, res_enc));
   } else {
     ELOG_DEBUG("No response from %s", function_name.c_str());
   }
@@ -584,7 +637,7 @@ TeeErrorCode TeeInitializeAecsAdmin(const std::string& req_str,
   tee::AecsAdminInitializeResponse res;
   PB_PARSE(req, req_str);
 
-  if (!kAdminSecret.public_key().empty()) {
+  if (!kAecsAdminAuth.public_key().empty()) {
     ELOG_ERROR("AECS administrator public key already exists");
     return TEE_ERROR_UNEXPECTED;
   }

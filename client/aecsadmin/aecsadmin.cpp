@@ -30,7 +30,9 @@ static const char kUsage[] =
 DEFINE_string(action, "", "Sub command to be executed");
 DEFINE_string(config, "", "AECS Administrator identity RSA private key");
 DEFINE_string(service, "", "The enclave service name");
+DEFINE_string(servicepasswordhash, "", "The password SHA256 for service");
 DEFINE_string(pubkey, "", "Enclave service owner identity RSA public key");
+DEFINE_string(password, "", "Password for AECS/Service administrator");
 DEFINE_string(osskeyid, "", "Access key ID for ossauth sub command");
 DEFINE_string(osskeysecret, "", "Access key secret for ossauth sub command");
 DEFINE_string(ossbucket, "", "Bucket name for ossauth sub command");
@@ -55,6 +57,7 @@ TeeErrorCode DoRegisterEnclaveService(AecsAdminClient* aecs_client) {
   TEE_CHECK_RETURN(tee::untrusted::FsReadString(FLAGS_pubkey, &public_key));
 
   req.set_service_name(FLAGS_service);
+  req.set_service_password_hash(FLAGS_servicepasswordhash);
   req.set_service_pubkey(public_key);
   TEE_CHECK_RETURN(aecs_client->RegisterEnclaveService(req, &res));
   return TEE_SUCCESS;
@@ -92,7 +95,7 @@ TeeErrorCode DoProvision(AecsAdminClient* aecs_client) {
   // CHECK_FLAGS(FLAGS_osskeysecret, "Empty OSS access key secret");
   // CHECK_FLAGS(FLAGS_ossbucket, "Empty OSS bucket name");
   // CHECK_FLAGS(FLAGS_ossendpoint, "Empty OSS endpoint");
-  CHECK_FLAGS(FLAGS_hostname, "Empty hostname");
+  CHECK_FLAGS(FLAGS_hostname, "Empty host name");
 
   req.mutable_auth()->set_access_key_id(FLAGS_osskeyid);
   req.mutable_auth()->set_access_key_secret(FLAGS_osskeysecret);
@@ -122,6 +125,11 @@ int main(int argc, char** argv) {
   tee::common::DataBytes key(conf.client_key());
   tee::common::DataBytes cert(conf.client_cert());
   tee::common::DataBytes ikey(conf.identity_key());
+  std::string password_hash_str;
+  if (!FLAGS_password.empty()) {
+    tee::common::DataBytes password(FLAGS_password);
+    password_hash_str = password.ToSHA256().ToHexStr().GetStr();
+  }
 
   // Then, create the secure client connect to the server
   // to avoid to to this in each handler function.
@@ -131,6 +139,7 @@ int main(int argc, char** argv) {
                                 key.FromBase64().GetStr(),
                                 cert.FromBase64().GetStr(),
                                 ikey.FromBase64().GetStr(),
+                                password_hash_str,
                                 conf.server_info());
   secure_client.GetServerPublicKey();
 

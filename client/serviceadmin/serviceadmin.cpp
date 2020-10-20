@@ -24,11 +24,12 @@ static const char kUsage[] =
     "\nSub Commands:\n"
     "\tcreate        Create enclave secrets specified in yaml file\n"
     "\tdestroy       Destroy an enclave secret by service and secret name\n"
-    "\tlist          List all enclave secrets or specail one by name";
+    "\tlist          List all enclave secrets or special one by name";
 
 // Define the command line options
 DEFINE_string(action, "", "Sub command to be executed");
-DEFINE_string(config, "", "AECS Administrator identity RSA private key");
+DEFINE_string(config, "", "Service Administrator identity RSA private key");
+DEFINE_string(password, "", "Service Administrator password");
 DEFINE_string(secret, "", "The enclave secret name to be destroy or list");
 DEFINE_string(policy, "", "Yaml policy file for creating enclave secrets");
 
@@ -102,6 +103,11 @@ int main(int argc, char** argv) {
   tee::common::DataBytes key(conf.client_key());
   tee::common::DataBytes cert(conf.client_cert());
   tee::common::DataBytes ikey(conf.identity_key());
+  std::string password_hash_str;
+  if (!FLAGS_password.empty()) {
+    tee::common::DataBytes password(FLAGS_password);
+    password_hash_str = password.ToSHA256().ToHexStr().GetStr();
+  }
 
   // Then, create the secure client connect to the server
   // to avoid to to this in each handler function.
@@ -111,6 +117,7 @@ int main(int argc, char** argv) {
                                    key.FromBase64().GetStr(),
                                    cert.FromBase64().GetStr(),
                                    ikey.FromBase64().GetStr(),
+                                   password_hash_str,
                                    conf.server_info());
   secure_client.GetServerPublicKey(conf.name());
 

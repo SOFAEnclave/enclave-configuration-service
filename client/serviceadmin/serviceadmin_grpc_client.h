@@ -34,8 +34,9 @@ using tee::ListEnclaveSecretResponse;
 namespace aecs {
 namespace client {
 
-constexpr int kTimeoutMs = 4000;
+constexpr int kTimeoutMs = 10000;
 constexpr char kSelfSignedCN[] = "enclave-service";
+constexpr char kSequenceFile[] = ".service_admin_sequence";
 
 // Only the enclave service administrator can operate the secrets
 // belong to this enclave service.
@@ -45,7 +46,8 @@ class ServiceAdminClient {
                      const std::string& ca,
                      const std::string& key,
                      const std::string& cert,
-                     const std::string& id_prvkey,
+                     const std::string& admin_prvkey,
+                     const std::string& admin_passwd,
                      const EnclaveMatchRules& enclave_info);
   ~ServiceAdminClient() {}
 
@@ -93,6 +95,7 @@ class ServiceAdminClient {
 
   std::unique_ptr<Aecs::Stub> stub_;
   const std::string admin_prvkey_;
+  const std::string admin_passwd_;
   const tee::EnclaveMatchRules& server_info_;
   std::string server_pubkey_;
 };

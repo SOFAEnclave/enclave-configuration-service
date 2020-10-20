@@ -87,10 +87,15 @@ StorageLocalFs::StorageLocalFs() {
 TeeErrorCode StorageLocalFs::Create(const tee::StorageCreateRequest& req,
                                     tee::StorageCreateResponse* res) {
   std::string filename = kLocalFsPrefixPath + req.name();
-  if (FsFileExists(filename)) {
-    TEE_LOG_ERROR("Key name has already existed: %s", filename.c_str());
-    return TEE_ERROR_PARAMETERS;
+  if (!req.has_force() || !req.force()) {
+    if (FsFileExists(filename)) {
+      TEE_LOG_ERROR("Key name has already existed: %s", filename.c_str());
+      return TEE_ERROR_PARAMETERS;
+    }
+  } else {
+    TEE_LOG_DEBUG("Update %s", filename.c_str());
   }
+
   TeeErrorCode ret = FsWriteString(filename, req.value());
   if (ret != TEE_SUCCESS) {
     TEE_LOG_ERROR_TRACE();

@@ -14,6 +14,7 @@ constexpr char kAecsConfFile[] = "aecs_server.json";
 
 constexpr char kAecsConfBackendLib[] = "storage_backend_lib";
 constexpr char kAecsConfAdminPubKey[] = "aecs_admin_pubkey";
+constexpr char kAecsConfAdminPasswordHash[] = "aecs_admin_password_hash";
 
 }  // namespace untrusted
 }  // namespace tee

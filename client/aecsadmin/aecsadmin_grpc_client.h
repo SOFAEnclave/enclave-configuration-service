@@ -35,8 +35,9 @@ using tee::UnregisterEnclaveServiceResponse;
 namespace aecs {
 namespace client {
 
-constexpr int kTimeoutMs = 4000;
+constexpr int kTimeoutMs = 10000;
 constexpr char kSelfSignedCN[] = "enclave-service";
+constexpr char kSequenceFile[] = ".aecs_admin_sequence";
 
 class AecsAdminClient {
  public:
@@ -44,7 +45,8 @@ class AecsAdminClient {
                   const std::string& ca,
                   const std::string& key,
                   const std::string& cert,
-                  const std::string& id_prvkey,
+                  const std::string& admin_prvkey,
+                  const std::string& admin_passwd,
                   const tee::EnclaveMatchRules& enclave_info);
   ~AecsAdminClient() {}
 
@@ -94,6 +96,7 @@ class AecsAdminClient {
 
   std::unique_ptr<Aecs::Stub> stub_;
   const std::string admin_prvkey_;
+  const std::string admin_passwd_;
   const tee::EnclaveMatchRules& server_info_;
   std::string server_pubkey_;
 };

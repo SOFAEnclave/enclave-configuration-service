@@ -12,6 +12,7 @@
 #include "tee/common/protobuf.h"
 #include "tee/common/type.h"
 #include "tee/untrusted/ra/untrusted_challenger.h"
+#include "tee/untrusted/utils/untrusted_fs.h"
 
 #include "serviceadmin/serviceadmin_grpc_client.h"
 
@@ -23,8 +24,11 @@ ServiceAdminClient::ServiceAdminClient(const std::string& ep,
                                        const std::string& key,
                                        const std::string& cert,
                                        const std::string& admin_prvkey,
+                                       const std::string& admin_passwd,
                                        const EnclaveMatchRules& enclave_info)
-    : admin_prvkey_(admin_prvkey), server_info_(enclave_info) {
+    : admin_prvkey_(admin_prvkey),
+      admin_passwd_(admin_passwd),
+      server_info_(enclave_info) {
   stub_ = PrepareSecureStub(ep, ca, key, cert);
 }
 
@@ -112,18 +116,35 @@ TeeErrorCode ServiceAdminClient::RemoteCall(
   tee::AdminRemoteCallResponse response;
 
   if (server_pubkey_.empty()) {
-    TEE_LOG_ERROR("Please get server public key firstly");
+    TEE_LOG_ERROR("Invalid AECS server public key");
     return TEE_ERROR_UNEXPECTED;
   }
 
   // Serialize the original request, encrypt and sign it
+  // Append sequence number to avoid replay attack
   std::string req_str;
   PB_SERIALIZE(req, &req_str);
+  tee::AdminRemoteCallReqWithAuth remote_req;
+  remote_req.set_req(req_str);
+  remote_req.set_password_hash(admin_passwd_);
+  // Read/Update the sequence number from/to file
+  using tee::untrusted::FsReadString;
+  using tee::untrusted::FsWriteString;
+  std::string sequence_str;
+  // The sequence file may doesn't exist when first time
+  tee::untrusted::FsReadString(kSequenceFile, &sequence_str);
+  int64_t sequence = sequence_str.empty() ? 1 : std::stoi(sequence_str) + 1;
+  remote_req.set_sequence(sequence);
+  TEE_CHECK_RETURN(FsWriteString(kSequenceFile, std::to_string(sequence)));
+  // Get the final remote call request string
+  std::string remote_req_str;
+  PB_SERIALIZE(remote_req, &remote_req_str);
+
   request.set_function_name(function_name);
   TEE_CHECK_RETURN(EnvelopeEncryptAndSign(service_name,
                                           server_pubkey_,
                                           admin_prvkey_,
-                                          req_str,
+                                          remote_req_str,
                                           request.mutable_req_enc()));
 
   // Call the remote trusted function
