@@ -77,11 +77,11 @@ TeeErrorCode StorageTrustedBridge::Update(const std::string& name,
   return TEE_SUCCESS;
 }
 
-TeeErrorCode StorageTrustedBridge::Delete(const std::string& pattern) {
+TeeErrorCode StorageTrustedBridge::Delete(const std::string& prefix) {
   tee::StorageDeleteRequest req;
   tee::StorageDeleteResponse res;
   req.mutable_auth()->CopyFrom(auth_);
-  req.set_pattern(pattern);
+  req.set_prefix(prefix);
   TeeInstance& ti = TeeInstance::GetInstance();
   TEE_CHECK_RETURN(ti.ReeRun("ReeStorageDelete", req, &res));
 

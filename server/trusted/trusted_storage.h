@@ -28,7 +28,7 @@ class StorageTrustedBridge {
   TeeErrorCode Update(const std::string& name,
                       const std::string& value,
                       const bool identity_encrypt = true);
-  TeeErrorCode Delete(const std::string& pattern);
+  TeeErrorCode Delete(const std::string& prefix);
   TeeErrorCode GetValue(const std::string& name,
                         std::string* value,
                         const bool identity_decrypt = true);

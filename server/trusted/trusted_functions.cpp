@@ -44,13 +44,14 @@ typedef TeeErrorCode (*ServiceAdminRemoteFunction)(
 // we use suffix here, and service name as prefix
 // when delete all service objects, just remove <service_name>_xxxx
 //
+static const char kServiceSeparator[] = "#";
 // Full public key name: <service_name>_admin_public_key
-static const char kStorageSuffixServicePubKey[] = "_admin_public_key";
+static const char kStorageSuffixServiceAuth[] = "#service#authentication";
 // Full secret name: <service_name>_secret_<secret_name>
-static const char kStorageSuffixServiceSecret[] = "_secret_";
+static const char kStorageSuffixServiceSecret[] = "#secret#";
 
 // Full identity key name: aecs_identity_key_<node-sn>
-static const char kStoragePrefixIdentity[] = "aecs_identity_key_";
+static const char kStoragePrefixIdentity[] = "identity@";
 
 static constexpr size_t kMaxSecretLength = 10240;
 
@@ -62,7 +63,8 @@ extern "C" {
 
 static TeeErrorCode VerifyAecsEnclave(const RaReportAuthentication& auth) {
   // Verify the remote enclave MRSIGNER and PRODID
-  // Don't need the same MRENCLAVE/ISVSVN in case connection from different version
+  // Don't require the same MRENCLAVE/ISVSVN in case connection
+  // from different version of AECS enclave instances
   tee::EnclaveMatchRules rules;
   tee::EnclaveInformation* rule = rules.add_entries();
   rule->CopyFrom(TeeInstance::GetInstance().GetEnclaveInfo());
@@ -174,6 +176,26 @@ static TeeErrorCode InitializeAecsAdmin(const tee::AdminAuth& admin) {
   return TEE_SUCCESS;
 }
 
+static TeeErrorCode CheckNamevalidity(const std::string& name) {
+  // Use the most normal Linux name style, reserve some special characters
+  if (name.size() >= 256) {
+    ELOG_ERROR("Name is too long");
+    return TEE_ERROR_PARAMETERS;
+  }
+  // Only allow [a-zA-Z0-9_-.] in names
+  for (int i = 0; i < name.size(); i++) {
+    if (('a' <= name[i] && name[i] <= 'z') ||
+        ('A' <= name[i] && name[i] <= 'Z') ||
+        ('0' <= name[i] && name[i] <= '9') || (name[i] == '_') ||
+        (name[i] == '-') || (name[i] == '.')) {
+      continue;
+    }
+    ELOG_ERROR("Invalid name with special characters");
+    return TEE_ERROR_PARAMETERS;
+  }
+  return TEE_SUCCESS;
+}
+
 TeeErrorCode TeeGetRemoteSecret(const std::string& req_str,
                                 std::string* res_str) {
   tee::GetRemoteSecretRequest req;
@@ -249,6 +271,9 @@ TeeErrorCode AecsAdminRegisterEnclaveService(const std::string& req_str,
   tee::RegisterEnclaveServiceResponse res;
   PB_PARSE(req, req_str);
 
+  // Check whether there are special characters in service name
+  TEE_CHECK_RETURN(CheckNamevalidity(req.service_name()));
+
   // Create the service admin authentication object
   tee::AdminAuth service_auth;
   service_auth.set_public_key(req.service_pubkey());
@@ -258,9 +283,9 @@ TeeErrorCode AecsAdminRegisterEnclaveService(const std::string& req_str,
   PB_SERIALIZE(service_auth, &service_auth_str);
 
   // Write the service admin authentication object
-  std::string pubkey_name = req.service_name() + kStorageSuffixServicePubKey;
+  std::string name = req.service_name() + kStorageSuffixServiceAuth;
   StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
-  TEE_CHECK_RETURN(storage.Create(pubkey_name, service_auth_str));
+  TEE_CHECK_RETURN(storage.Create(name, service_auth_str));
 
   PB_SERIALIZE(res, res_str);
   return TEE_SUCCESS;
@@ -274,8 +299,9 @@ TeeErrorCode AecsAdminUnregisterEnclaveService(const std::string& req_str,
 
   // Remove all the objects who's name is begin with service_name
   // These objects include admin public key and all the secrets
-  TEE_CHECK_RETURN(
-      StorageTrustedBridge::GetInstance().Delete(req.service_name()));
+  // Add kServiceSeparator to avoid remove 'abc' for 'ab' case
+  std::string name = req.service_name() + kServiceSeparator;
+  TEE_CHECK_RETURN(StorageTrustedBridge::GetInstance().Delete(name));
 
   PB_SERIALIZE(res, res_str);
   return TEE_SUCCESS;
@@ -288,13 +314,13 @@ TeeErrorCode AecsAdminListEnclaveService(const std::string& req_str,
   PB_PARSE(req, req_str);
 
   // If service_name is not specified, list all service names
-  std::string list_pattern = kStorageSuffixServicePubKey;
+  std::string list_pattern = kStorageSuffixServiceAuth;
   if (!req.service_name().empty()) {
-    list_pattern = req.service_name() + kStorageSuffixServicePubKey;
+    list_pattern = req.service_name() + kStorageSuffixServiceAuth;
   }
   // List all the names of service
   StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
-  TEE_CHECK_RETURN(storage.ListAll(list_pattern, res.mutable_list_res()));
+  TEE_CHECK_RETURN(storage.ListAll(list_pattern, res.mutable_services()));
 
   PB_SERIALIZE(res, res_str);
   return TEE_SUCCESS;
@@ -318,13 +344,15 @@ TeeErrorCode AecsReloadIdentity(const std::string& req_str,
   PB_PARSE(req, req_str);
 
   // Check if need to reload or save the identity backup
-  std::string identity_name = kStoragePrefixIdentity;
   if (req.host_name().empty()) {
     ELOG_WARN("Unknown node name for identity key backup");
     return TEE_SUCCESS;
-  } else {
-    identity_name.append(req.host_name());
   }
+  // Check whether there are special characters in host name
+  TEE_CHECK_RETURN(CheckNamevalidity(req.host_name()));
+
+  std::string identity_name = kStoragePrefixIdentity;
+  identity_name.append(req.host_name());
 
   // Seal the current identity key
   tee::KeyPair& identity = TeeInstance::GetInstance().GetIdentity();
@@ -429,6 +457,9 @@ TeeErrorCode ServiceAdminCreateSecret(const std::string& service_name,
     ELOG_ERROR("There is no secret type");
     return TEE_ERROR_PARAMETERS;
   }
+
+  // Check whether there are special characters in secret name
+  TEE_CHECK_RETURN(CheckNamevalidity(req.secret().spec().secret_name()));
 
   tee::EnclaveSecretType secret_type = req.secret().spec().type();
   ELOG_INFO("Create enclave secret type: %d", SCAST(int, secret_type));
@@ -549,7 +580,7 @@ TeeErrorCode TeeServiceAdminRemoteCall(const std::string& req_str,
 
   // Get the service administrator authentication settings from storage
   std::string service_auth_str;
-  std::string service_auth_name = service_name + kStorageSuffixServicePubKey;
+  std::string service_auth_name = service_name + kStorageSuffixServiceAuth;
   StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
   TEE_CHECK_RETURN(storage.GetValue(service_auth_name, &service_auth_str));
   tee::AdminAuth service_auth;

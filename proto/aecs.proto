@@ -48,7 +48,7 @@ message AdminAuth {
 }
 
 message AdminRemoteCallReqWithAuth {
-  optional string req = 1;
+  optional bytes req = 1;
   optional string password_hash = 2;
   optional int64 sequence = 3;
 }
@@ -80,7 +80,8 @@ message StorageCreateResponse {
 
 message StorageDeleteRequest {
   optional StorageAuth auth = 1;
-  optional string pattern = 2;
+  // Prefix means must match at the beginning
+  optional string prefix = 2;
 }
 
 message StorageDeleteResponse {
@@ -88,6 +89,7 @@ message StorageDeleteResponse {
 
 message StorageListAllRequest {
   optional StorageAuth auth = 1;
+  // Pattern means may be in the beginning/middle/ending
   optional string pattern = 2;
 }
 
@@ -173,7 +175,7 @@ message ListEnclaveServiceRequest {
 }
 
 message ListEnclaveServiceResponse {
-  optional StorageListAllResponse list_res = 1;
+  optional StorageListAllResponse services = 1;
 }
 
 message AecsProvisionRequest {

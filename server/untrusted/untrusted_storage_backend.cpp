@@ -62,7 +62,7 @@ TeeErrorCode AecsStorageBackend::Create(const tee::StorageCreateRequest& req,
 
 TeeErrorCode AecsStorageBackend::Delete(const tee::StorageDeleteRequest& req,
                                         tee::StorageDeleteResponse* res) {
-  TEE_LOG_DEBUG("Storage delete: %s", req.pattern().c_str());
+  TEE_LOG_DEBUG("Storage delete: %s", req.prefix().c_str());
   if (!dlopen_lib_) {
     TEE_LOG_ERROR_TRACE();
     return TEE_ERROR_UNEXPECTED;

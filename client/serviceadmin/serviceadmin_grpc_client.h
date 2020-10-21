@@ -36,7 +36,7 @@ namespace client {
 
 constexpr int kTimeoutMs = 10000;
 constexpr char kSelfSignedCN[] = "enclave-service";
-constexpr char kSequenceFile[] = ".service_admin_sequence";
+constexpr char kSequenceFile[] = "./storage/.service_admin_sequence";
 
 // Only the enclave service administrator can operate the secrets
 // belong to this enclave service.

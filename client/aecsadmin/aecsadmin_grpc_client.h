@@ -37,7 +37,7 @@ namespace client {
 
 constexpr int kTimeoutMs = 10000;
 constexpr char kSelfSignedCN[] = "enclave-service";
-constexpr char kSequenceFile[] = ".aecs_admin_sequence";
+constexpr char kSequenceFile[] = "./storage/.aecs_admin_sequence";
 
 class AecsAdminClient {
  public:

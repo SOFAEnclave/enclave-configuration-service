@@ -25,7 +25,7 @@ TeeErrorCode StorageCreate(const tee::StorageCreateRequest& req,
 
 TeeErrorCode StorageDelete(const tee::StorageDeleteRequest& req,
                            tee::StorageDeleteResponse* res) {
-  TEE_LOG_DEBUG("StorageDelete: %s", req.pattern().c_str());
+  TEE_LOG_DEBUG("StorageDelete: %s", req.prefix().c_str());
 
   tee::untrusted::StorageLocalFs storage;
   TEE_CHECK_RETURN(storage.Delete(req, res));
@@ -107,7 +107,7 @@ TeeErrorCode StorageLocalFs::Create(const tee::StorageCreateRequest& req,
 
 TeeErrorCode StorageLocalFs::Delete(const tee::StorageDeleteRequest& req,
                                     tee::StorageDeleteResponse* res) {
-  std::string filename = kLocalFsPrefixPath + req.pattern();
+  std::string filename = kLocalFsPrefixPath + req.prefix();
   std::string command = "rm " + filename + "*";
   if (system(command.c_str()) != 0) {
     TEE_LOG_ERROR("Fail to delete file: %s*", filename.c_str());
