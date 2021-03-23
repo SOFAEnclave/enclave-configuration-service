@@ -19,7 +19,7 @@ BUILDOPT="$@"
 echo "Build options: $BUILDOPT"
 
 REPONAME="$(basename $BUILDDIR)"
-IMAGE=antkubetee/kubetee-dev-ubuntu18.04-grpc-sgx-ssl:1.0
+IMAGE=antkubetee/kubetee-dev-ubuntu18.04-grpc-sgx-ssl:2.0
 CONTAINERNAME="kubetee-build-$REPONAME"
 
 echo "Build directory: $BUILDDIR"

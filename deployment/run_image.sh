@@ -20,7 +20,7 @@ clean_up() {
 trap clean_up SIGINT SIGQUIT SIGTERM
 
 # Start the application in container
-sudo docker run -t --rm \
+sudo docker run -it --rm \
     --name $CONTAINERNAME \
     --device=/dev/isgx \
     --net=host \

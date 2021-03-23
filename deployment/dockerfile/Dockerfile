@@ -1,4 +1,4 @@
-FROM antkubetee/kubetee-dev-ubuntu18.04-grpc-sgx-ssl:1.0
+FROM antkubetee/kubetee-dev-ubuntu18.04-grpc-sgx-ssl:2.0
 
 LABEL maintainer="Junxian Xiao <junxian.xjx@antfin.com>"
 
