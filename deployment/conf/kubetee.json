@@ -14,9 +14,9 @@
   "verify_spid": "<32byte-SPID>00000000000000000000000000000000",
   "verify_user_hash": "",
   "rpc_remote_server": "",
-  "rpc_remote_port": "19666",
+  "rpc_remote_port": "19526",
   "rpc_server": "",
-  "rpc_port": "19668",
+  "rpc_port": "19527",
   "rpc_ca_path": "/etc/certs/ca.crt",
   "rpc_cert_path": "/etc/certs/test1.crt",
   "rpc_key_path": "/etc/certs/test1.key"
