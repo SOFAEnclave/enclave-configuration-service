@@ -4,6 +4,6 @@
 [submodule "third_party/yaml-cpp"]
 	path = third_party/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
-[submodule "tff"]
-	path = tff
-	url = https://github.com/SOFAEnclave/trusted-function-framework.git
+[submodule "third_party/unified_attestation"]
+	path = third_party/unified_attestation
+	url = https://github.com/jinzhao-dev/jinzhao-attest.git

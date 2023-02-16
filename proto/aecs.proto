@@ -1,96 +1,132 @@
 // protobuffer version: 3.7.1
 // grpc version: 1.19.1
 
-syntax = "proto2";
+syntax = "proto3";
 
-import "kubetee.proto";
+import "attestation.proto";
+import "crypto.proto";
 
-package tee;
+package kubetee;
+
+option java_package = "com.alipay.kubetee.aecs.proto.v1";
 
 enum EnclaveSecretType {
   SECRET_TYPE_RSA_KEY_PAIR = 0;
   SECRET_TYPE_AES256_KEY = 1;
   // Max length of import-type secret is 4096
   SECRET_TYPE_IMPORT_DATA = 2;
-  // certificate type is not supported yet
   SECRET_TYPE_CERTIFICATE = 3;
+  SECRET_TYPE_SM2_KEY_PAIR = 4;
+  SECRET_TYPE_CONFIGURATIONS = 5;
 }
 
 message EnclaveSecretPolicy {
-  optional EnclaveMatchRules rules = 1;
+  UnifiedAttestationPolicy policy = 1;
+}
+
+message EnclaveKvPair {
+  string key = 1;
+  string value = 2;
+}
+
+message EnclaveConfigurations {
+  repeated EnclaveKvPair items = 1;
 }
 
 message EnclaveSecretSpec {
-  optional string secret_name = 1;
-  optional string service_name = 2;
-  optional EnclaveSecretType type = 3;
-  optional EnclaveSecretPolicy policy = 4;
+  string secret_name = 1;
+  string service_name = 2;
+  EnclaveSecretType type = 3;
+  EnclaveSecretPolicy policy = 4;
+  repeated EnclaveKvPair params = 5;
+  string readonly = 6;
+  string share = 7;
+}
+
+message EnclaveStatus {
+  string version = 1;
+  string status = 2;
+  string identity_backup = 3;
+  string identity_hash = 4;
+  UnifiedAttestationAttributes attr = 5;
 }
 
 // EnclaveSecret will be used when create secret or
 // when save the secret into back-end storage
 message EnclaveSecret {
-  optional EnclaveSecretSpec spec = 1;
-  optional bytes data = 2;
+  EnclaveSecretSpec spec = 1;
+  string data = 2;
 }
 
-message RsaKeyPair {
-  optional string private_key = 1;
-  optional string public_key = 2;
+// Authentication by RSA private key signature
+message SignatureAuthentication {
+  bytes signature = 1;
+  bytes data = 2;
 }
 
 message AdminAuth {
-  optional string public_key = 1;
+  string public_key = 1;
   // SHA256 of the admin password
-  optional string password_hash = 2;
-  // sequence number to avoid the replay attack
-  optional int64 sequence = 3;
+  string password_hash = 2;
 }
 
 message AdminRemoteCallReqWithAuth {
-  optional bytes req = 1;
-  optional string password_hash = 2;
-  optional int64 sequence = 3;
+  bytes req = 1;
+  string password = 2;
 }
 
 message AecsServerSecrets {
-  optional KeyPair identity = 1;
-  optional StorageAuth storage_auth = 2;
-  optional AdminAuth admin = 3;
+  AsymmetricKeyPair identity = 1;
+  StorageAuth storage_auth = 2;
+  AdminAuth admin = 3;
+}
+
+message AecsIdentityBackup {
+  // The hex string of sealed serialized identity
+  string hex_sealed_identity = 1;
+  // The hash of identity public key
+  string public_key_hash = 2;
+}
+
+message AecsListIdentityBackupResult {
+  string identity_backup_name = 1;
+  string identity_public_key_hash = 2;
 }
 
 message StorageAuth {
-  // The following items are optional and only used for Alibaba Cloud OSS
-  optional string access_key_id = 1;
-  optional string access_key_secret = 2;
-  optional string endpoint = 3;
-  optional string bucket_name = 4;
+  // The following items are and only used for Alibaba Cloud OSS
+  string access_key_id = 1;
+  string access_key_secret = 2;
+  string endpoint = 3;
+  string bucket_name = 4;
 }
 
 message StorageCreateRequest {
-  optional StorageAuth auth = 1;
-  optional string name = 2;
-  optional bytes value = 3;
+  StorageAuth auth = 1;
+  string name = 2;
+  bytes value = 3;
   // Force to create new object even it is already existed
-  optional bool force = 4;
+  bool force = 4;
 }
 
 message StorageCreateResponse {
 }
 
 message StorageDeleteRequest {
-  optional StorageAuth auth = 1;
+  StorageAuth auth = 1;
   // Prefix means must match at the beginning
-  optional string prefix = 2;
+  string prefix = 2;
+  // Exact name to delete the exact object
+  string name = 3;
 }
 
 message StorageDeleteResponse {
 }
 
 message StorageListAllRequest {
-  optional StorageAuth auth = 1;
-  // Pattern means may be in the beginning/middle/ending
-  optional string pattern = 2;
+  StorageAuth auth = 1;
+  // Prefix means must match at the beginning
+  string prefix = 2;
 }
 
 message StorageListAllResponse {
@@ -98,35 +134,70 @@ message StorageListAllResponse {
 }
 
 message StorageCheckExistRequest {
-  optional StorageAuth auth = 1;
-  optional string name = 2;
+  StorageAuth auth = 1;
+  string name = 2;
 }
 
 message StorageCheckExistResponse {
-  optional bool exist = 1;
+  bool exist = 1;
 }
 
 message StorageGetValueRequest {
-  optional StorageAuth auth = 1;
-  optional string name = 2;
+  StorageAuth auth = 1;
+  string name = 2;
 }
 
 message StorageGetValueResponse {
-  optional bytes value = 1;
+  bytes value = 1;
+}
+
+message GetAecsStatusRequest {
+}
+
+message GetAecsStatusResponse {
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  // EnclaveStatus json string;
+  string status_str = 2;
+  DigitalEnvelopeEncrypted status_sig = 3;
+}
+
+// Sync the secret information from another remote aecs node,
+// e.g. storage authentication information and identity keys
+message SyncWithRemoteAecsRequest {
+  string remote_endpoint = 1;
+}
+
+message SyncWithRemoteAecsResponse {
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  // EnclaveStatus json string;
+  string status_str = 2;
+  DigitalEnvelopeEncrypted status_sig = 3;
 }
 
 message GetRemoteSecretRequest {
-  optional RaReportAuthentication auth_ra_report = 1;
+  UnifiedAttestationAuthReport auth_ra_report = 1;
 }
 
 message GetRemoteSecretResponse {
-  optional RaReportAuthentication auth_ra_report = 1;
+  UnifiedAttestationAuthReport auth_ra_report = 1;
   // the digital envelope of serialized AecsServerSecrets
-  optional DigitalEnvelopeEncrypted secret_keys_enc = 2;
+  DigitalEnvelopeEncrypted secret_keys_enc = 2;
+}
+
+/// Request for TeeInitializeEnclave Trusted PbFunction
+message AecsInitializeEnclaveRequest {
+  string hex_sealed_identity = 3;
+}
+
+/// Response for TeeInitializeEnclave Trusted PbFunction
+message AecsInitializeEnclaveResponse {
+  string enclave_public_key = 1;
+  // Current keypair identity keypair in use
+  string enclave_hex_sealed_identity = 2;
 }
 
 message AecsAdminInitializeRequest {
-  optional AdminAuth admin = 1;
+  AdminAuth admin = 1;
 }
 
 message AecsAdminInitializeResponse {
@@ -135,7 +206,8 @@ message AecsAdminInitializeResponse {
 // The remote call for both AECS administrator and service administrator
 // The only difference is which public key is used to do authentication
 message AdminRemoteCallRequest {
-  optional string function_name = 1;
+  string function_name = 1;
+  // Digital envelope of message AdminRemoteCallReqWithAuth
   // For service admin requests, the aes AAD is the service name
   // 1. We don't add the service name outside req_enc, if so, we cannot
   // know the service name is legal or not.
@@ -143,57 +215,73 @@ message AdminRemoteCallRequest {
   // 3. We don't add service name in other request because we need the
   // service name to find the related public key and verify the req_enc,
   // we must get service name before decrypt the serialized request string.
-  optional DigitalEnvelopeEncrypted req_enc = 3;
+  DigitalEnvelopeEncrypted req_enc = 3;
 }
 
 message AdminRemoteCallResponse {
-  optional string error_message = 1;
-  optional RaReportAuthentication auth_ra_report = 2;
-  optional DigitalEnvelopeEncrypted res_enc = 3;
-  // In some case, for example, when provision, use seal API to protect secret
-  optional bytes sealed_secret = 4;
+  string error_message = 1;
+  UnifiedAttestationAuthReport auth_ra_report = 2;
+  DigitalEnvelopeEncrypted res_enc = 3;
+  // In some case, we need the plain output for internal use
+  bytes res_plain = 4;
 }
 
 message RegisterEnclaveServiceRequest {
-  optional string service_name = 1;
-  optional string service_pubkey = 2;
-  optional string service_password_hash = 3;
+  string service_name = 1;
+  string service_pubkey = 2;
+  string service_password_hash = 3;
 }
 
 message RegisterEnclaveServiceResponse {
 }
 
 message UnregisterEnclaveServiceRequest {
-  optional string service_name = 1;
+  string service_name = 1;
 }
 
 message UnregisterEnclaveServiceResponse {
 }
 
 message ListEnclaveServiceRequest {
-  optional string service_name = 1;
+  string service_name = 1;
 }
 
 message ListEnclaveServiceResponse {
-  optional StorageListAllResponse services = 1;
+  StorageListAllResponse services = 1;
+}
+
+message AecsBackupIdentityRequest {
+  // host_name is used for the identity key backup name in storage
+  string host_name = 1;
+}
+
+message AecsBackupIdentityResponse {
+}
+
+message AecsListBackupIdentityRequest {
+  // Empty means all,  or special name, or prefix pattern
+  string host_name = 1;
+}
+
+message AecsListBackupIdentityResponse {
+  repeated AecsListIdentityBackupResult results = 1;
+}
+
+message AecsDeleteBackupIdentityRequest {
+  // Must be exact name
+  string host_name = 1;
+}
+
+message AecsDeleteBackupIdentityResponse {
 }
 
 message AecsProvisionRequest {
-  optional StorageAuth auth = 1;
+  StorageAuth auth = 1;
   // host_name is used for the identity key backup name in storage
-  optional string host_name = 2;
+  string host_name = 2;
 }
 
 message AecsProvisionResponse {
-}
-
-message GetIdentityPublicKeyRequest {
-  optional string service_name = 1;
-  optional SignatureAuthentication auth_signature = 2;
-}
-
-message GetIdentityPublicKeyResponse {
-  optional RaReportAuthentication auth_ra_report = 1;
 }
 
 message CreateEnclaveSecretRequest {
@@ -201,21 +289,24 @@ message CreateEnclaveSecretRequest {
   // The whole interfaces request will be wrapped by
   // the RemoteCall encrypt/authentication/decrypt flow
   // So just plain secret data here
-  optional EnclaveSecret secret = 1;
+  EnclaveSecret secret = 1;
+  // If the secret with the same name is already existed
+  // update allow empty data and update the spec only
+  bool is_update = 2;
 }
 
 message CreateEnclaveSecretResponse {
 }
 
 message DestroyEnclaveSecretRequest {
-  optional string secret_name = 1;
+  string secret_name = 1;
 }
 
 message DestroyEnclaveSecretResponse {
 }
 
 message ListEnclaveSecretRequest {
-  optional string secret_name = 1;
+  string secret_name = 1;
 }
 
 message ListEnclaveSecretResponse {
@@ -223,13 +314,41 @@ message ListEnclaveSecretResponse {
 }
 
 message GetEnclaveSecretRequest {
-  optional RaReportAuthentication auth_ra_report = 1;
-  optional string service_name = 2;
-  optional string secret_name = 3;
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  string service_name = 2;
+  string secret_name = 3;
 }
 
 message GetEnclaveSecretResponse {
-  optional RaReportAuthentication auth_ra_report = 1;
-  optional DigitalEnvelopeEncrypted secret_enc = 2;
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  DigitalEnvelopeEncrypted secret_enc = 2;
+}
+
+message GetEnclaveSecretPublicRequest {
+  string service_name = 1;
+  string secret_name = 2;
+  // service subid and token are reserved for internal service
+  // access authentication. It's not sued currently.
+  // The subid is used to seperate different request client.
+  // The token is (service_subid + service_name + secret_name).hash.sig.base64
+  // The service admin public key is saved in AECS when register service
+  // So, only the registered service admin can generate the token.
+  string service_subid = 3;
+  string service_token = 4;
+  string nonce = 5;
+}
+
+message GetEnclaveSecretPublicResponse {
+  // RA report of AECS
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  // This field include the pb2json serialized string of EnclaveSecret type
+  // secret with spec and only public key in data filed
+  string secret_public = 2;
+  // Sign the secret_public string and nonce together by AECS private key
+  // just append nonce to the end of secret_public
+  // if nonce is not used and empty, still only secret_public is signed
+  string signature_b64 = 3;
+  // Should be the same nonce in req
+  string nonce = 4;
 }
 

@@ -1,14 +1,29 @@
 // protobuffer version: 3.7.1
 // grpc version: 1.19.1
 
-syntax = "proto2";
+syntax = "proto3";
 
 import "aecs.proto";
 
-package tee;
+package kubetee;
 
+option java_package = "com.alipay.kubetee.aecs.proto.v1";
 
 service Aecs {
+// -----------------------------------------------------------
+// AECS common untrusted interfaces
+// -----------------------------------------------------------
+
+  // Get the encalve status and information together with ra report
+  rpc GetAecsStatus(GetAecsStatusRequest)
+    returns (GetAecsStatusResponse) {
+  }
+
+  // Get the encalve status and information together with ra report
+  rpc SyncWithRemoteAecs(SyncWithRemoteAecsRequest)
+    returns (SyncWithRemoteAecsResponse) {
+  }
+
 // -----------------------------------------------------------
 // AECS identity interfaces
 // -----------------------------------------------------------
@@ -45,5 +60,11 @@ service Aecs {
   // Get the enclave secret based on RA
   rpc GetEnclaveSecret(GetEnclaveSecretRequest)
     returns (GetEnclaveSecretResponse) {
+  }
+
+  // Get the enclave secret's public key
+  // Of course, only for RSA key pair or certificate type
+  rpc GetEnclaveSecretPublic(GetEnclaveSecretPublicRequest)
+    returns (GetEnclaveSecretPublicResponse) {
   }
 }

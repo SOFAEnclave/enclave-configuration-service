@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-#include "tee/common/type.h"
+#include "unified_attestation/ua_untrusted.h"
 
 #include "./aecs.pb.h"
 
-namespace tee {
+namespace aecs {
 namespace untrusted {
 
 class AecsStorageBackend {
@@ -19,16 +19,16 @@ class AecsStorageBackend {
     return instance_;
   }
 
-  TeeErrorCode Create(const tee::StorageCreateRequest& req,
-                      tee::StorageCreateResponse* res);
-  TeeErrorCode Delete(const tee::StorageDeleteRequest& req,
-                      tee::StorageDeleteResponse* res);
-  TeeErrorCode GetValue(const tee::StorageGetValueRequest& req,
-                        tee::StorageGetValueResponse* res);
-  TeeErrorCode ListAll(const tee::StorageListAllRequest& req,
-                       tee::StorageListAllResponse* res);
-  TeeErrorCode CheckExist(const tee::StorageCheckExistRequest& req,
-                          tee::StorageCheckExistResponse* res);
+  TeeErrorCode Create(const kubetee::StorageCreateRequest& req,
+                      kubetee::StorageCreateResponse* res);
+  TeeErrorCode Delete(const kubetee::StorageDeleteRequest& req,
+                      kubetee::StorageDeleteResponse* res);
+  TeeErrorCode GetValue(const kubetee::StorageGetValueRequest& req,
+                        kubetee::StorageGetValueResponse* res);
+  TeeErrorCode ListAll(const kubetee::StorageListAllRequest& req,
+                       kubetee::StorageListAllResponse* res);
+  TeeErrorCode CheckExist(const kubetee::StorageCheckExistRequest& req,
+                          kubetee::StorageCheckExistResponse* res);
 
  private:
   // Hide construction functions
@@ -41,6 +41,6 @@ class AecsStorageBackend {
 };
 
 }  // namespace untrusted
-}  // namespace tee
+}  // namespace aecs
 
 #endif  // SERVER_UNTRUSTED_UNTRUSTED_STORAGE_BACKEND_H_

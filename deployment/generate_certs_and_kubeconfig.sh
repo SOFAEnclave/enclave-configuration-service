@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
 THISDIR="$(readlink -f $(dirname $0))"
-CATOOL="${THISDIR}/../tff/tools/gencert"
+CATOOL="${THISDIR}/gencert"
 
+AECSINSTANCEDIR="$THISDIR/aecs_instance"
+INSTANCEDIR=${1:-"$THISDIR/aecs_instance"}
+FORCE_REPLACE="NO"
+IS_SM_MODE="NO"
 
 # File parameter check
 check_file_exist() {
@@ -16,7 +20,7 @@ replace_kubeconfig_key_cert() {
     local name="$2"
     local value="$(cat $3 | base64 -w0)"
 
-    echo "Replace [$name] in kubeconfig file $conf"
+    echo "Replacing [$name] in kubeconfig file $conf ..."
     sed -i -e "s/${name}:.*$/${name}:\ ${value}/g" $conf && return 0
 
     echo "Fail to replace [$name] in kubeconfig file $conf"
@@ -29,7 +33,7 @@ replace_jsonconf_key_cert() {
     local name="$2"
     local value="$(cat $3 | base64 -w0)"
 
-    echo "Replace [$name] in JSON config file $conf"
+    echo "Replacing [$name] in JSON config file $conf ..."
 
     # middle line with ',' at the end of line
     sed -i -e "s/\"${name}\":.*$/\"${name}\":\ \"${value}\",/g" $conf && return 0
@@ -42,14 +46,36 @@ replace_jsonconf_key_cert() {
 # Generate the gRPC TLS CA and client/server keys and certificates
 generate_tls_certificates() {
     local outdir="$1"
-    $CATOOL gentest $outdir
+    if [ -e "$outdir/ca.crt" -a "$FORCE_REPLACE" != "YES" ] ; then
+        echo "Certificates exist here: $outdir"
+    else
+        echo "Generating all the TLS certificates ..."
+        mkdir -p $outdir
+        [ -n "$outdir" ] && rm -rf $outdir/*
+        $CATOOL genall $outdir
+        chmod a+r $outdir/*
+    fi
 }
 
 # Generate the PKCS1 private and public key
-generate_pkcs1_rsa_keypair() {
+generate_asymmetric_keypair() {
     local prefix="$1"
-    openssl genrsa -out ${prefix}private.pem 2048
-    openssl rsa -in ${prefix}private.pem -pubout -out ${prefix}public.pem -RSAPublicKey_out
+
+    if [ -e "${prefix}private.pem" -a "$FORCE_REPLACE" != "YES" ] ; then
+        echo "PKCS1 RSA key pair exist here: ${prefix}*.pem"
+    else
+        echo "Generating new key pair: $prefix/{private.pem,public.pem} ..."
+        mkdir -p $(dirname $1) && \
+        if [ "$IS_SM_MODE" == "YES" ] ; then
+            # generate sm2 keypair
+            openssl ecparam -name SM2 -genkey -noout -out ${prefix}private.pem
+            openssl ec -in ${prefix}private.pem -pubout -out ${prefix}public.pem	
+        else
+            # generate pkcs1 rsa keypair
+            openssl genrsa -out ${prefix}private.pem 2048 && \
+            openssl rsa -in ${prefix}private.pem -pubout -out ${prefix}public.pem -RSAPublicKey_out
+        fi
+    fi
 }
 
 # Update the identity key and TLS key/certificate in kubeconfig
@@ -75,26 +101,56 @@ update_admin_kubeconfig() {
 }
 
 generate_all_certs_and_kubeconfig_files() {
-    generate_tls_certificates "$THISDIR/certs" && \
-    generate_pkcs1_rsa_keypair "$THISDIR/certs/admin_" && \
-    generate_pkcs1_rsa_keypair "$THISDIR/certs/service_" && \
+    local CONFDIR=$INSTANCEDIR/etc/kubetee
+    local CERTDIR=$INSTANCEDIR/etc/certs
+
+    echo "==== Generate certficates and keys into ${INSTANCEDIR} ..."
+    generate_tls_certificates "$CERTDIR" && \
+    generate_asymmetric_keypair "$CERTDIR/aecs_admin_" && \
+    generate_asymmetric_keypair "$CERTDIR/service_admin_" && \
     update_admin_kubeconfig \
-        $THISDIR/conf/aecs_admin_test.kubeconfig \
-        $THISDIR/certs/admin_private.pem \
-        $THISDIR/certs/test1.key \
-        $THISDIR/certs/test1.crt \
-        $THISDIR/certs/ca.crt && \
+        $CONFDIR/aecs_admin_test.kubeconfig \
+        $CERTDIR/aecs_admin_private.pem \
+        $CERTDIR/aecs_admin.key \
+        $CERTDIR/aecs_admin.crt \
+        $CERTDIR/ca.crt && \
     update_admin_kubeconfig \
-        $THISDIR/conf/service_admin_test.kubeconfig \
-        $THISDIR/certs/service_private.pem \
-        $THISDIR/certs/test2.key \
-        $THISDIR/certs/test2.crt \
-        $THISDIR/certs/ca.crt && \
+        $CONFDIR/service_admin_test.kubeconfig \
+        $CERTDIR/service_admin_private.pem \
+        $CERTDIR/service_admin.key \
+        $CERTDIR/service_admin.crt \
+        $CERTDIR/ca.crt && \
     replace_jsonconf_key_cert \
-        $THISDIR/conf/aecs_server.json \
+        $CONFDIR/aecs_server.json \
         "aecs_admin_pubkey" \
-        $THISDIR/certs/admin_public.pem
+        $CERTDIR/aecs_admin_public.pem
 }
 
+prepare_aecs_instance() {
+    [ -d "$INSTANCEDIR" ] && return 0
+
+    mkdir -p $INSTANCEDIR/bin
+    cp $THISDIR/bin/*.sh $INSTANCEDIR/bin
+    mkdir -p $INSTANCEDIR/etc/kubetee
+    cp $THISDIR/conf/* $INSTANCEDIR/etc/kubetee/
+    cp $THISDIR/../third_parity/unified_attestation/deployment/conf/* $INSTANCEDIR/etc/kubetee/
+    mkdir -p $INSTANCEDIR/etc/certs
+    cp ./certs/* $INSTANCEDIR/etc/certs
+}
+
+# Check the arguments in given order
+#
+# Force to replace certs and key pairs if provide "--replace"
+if [ "$1" == "--replace" ] ; then
+    FORCE_REPLACE="YES"
+    shift
+fi
+# Generate SM keypair
+if [ "$1" == "--sm" ] ; then
+    IS_SM_MODE="YES"
+    shift
+fi
+
 # Start to execute
+prepare_aecs_instance
 generate_all_certs_and_kubeconfig_files

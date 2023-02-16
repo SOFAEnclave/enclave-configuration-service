@@ -1,9 +1,9 @@
 #include <string>
 
-#include "tee/common/error.h"
-#include "tee/common/log.h"
+#include "unified_attestation/ua_untrusted.h"
 
-#include "client/common/kubeconfig_parser.h"
+#include "aecs/error.h"
+#include "common/kubeconfig_parser.h"
 
 static const char kConfAdmin[] = "administrator";
 static const char kConfServer[] = "aecsServer";
@@ -26,31 +26,33 @@ std::string KubeConfigParser::GetStr(const YAML::Node& node) {
 }
 
 TeeErrorCode KubeConfigParser::ParseAdmin(const YAML::Node& node,
-                                          tee::KubeConfig* conf) {
+                                          kubetee::KubeConfig* conf) {
   conf->set_name(GetStr(node["name"]));
   conf->set_identity_key(GetStr(node["identityKey"]));
   return TEE_SUCCESS;
 }
 
 TeeErrorCode KubeConfigParser::ParseServerInfo(const YAML::Node& node,
-                                               tee::KubeConfig* conf) {
-  tee::EnclaveInformation* info = conf->mutable_server_info()->add_entries();
-  info->set_hex_mrenclave(GetStr(node["mrenclave"]));
-  info->set_hex_mrsigner(GetStr(node["mrsigner"]));
-  info->set_hex_prod_id(GetStr(node["prodID"]));
-  info->set_hex_min_isvsvn(GetStr(node["minIsvSvn"]));
-  info->set_hex_user_data(GetStr(node["user_data"]));
-  info->set_hex_spid(GetStr(node["spid"]));
+                                               kubetee::KubeConfig* conf) {
+  kubetee::UnifiedAttestationAttributes* attr =
+      conf->mutable_server_policy()->add_main_attributes();
+  attr->set_hex_ta_measurement(GetStr(node["mrenclave"]));
+  attr->set_hex_signer(GetStr(node["mrsigner"]));
+  attr->set_hex_prod_id(GetStr(node["prodID"]));
+  attr->set_str_min_isvsvn(GetStr(node["minIsvSvn"]));
+  attr->set_hex_user_data(GetStr(node["user_data"]));
+  attr->set_hex_spid(GetStr(node["spid"]));
   return TEE_SUCCESS;
 }
 
 TeeErrorCode KubeConfigParser::ParseServer(const YAML::Node& node,
-                                           tee::KubeConfig* conf) {
+                                           kubetee::KubeConfig* conf) {
   if (!node[kConfServerInfo]) {
     TEE_LOG_ERROR("There is no '%s' field", kConfServerInfo);
-    return TEE_ERROR_PARAMETERS;
+    return AECS_ERROR_PARAMETER_KUBECONFIG_PARSE;
   }
 
+  conf->set_client_rpc_secure(GetStr(node["clientRpcSecure"]));
   conf->set_client_key(GetStr(node["clientKey"]));
   conf->set_client_cert(GetStr(node["clientCert"]));
   conf->set_client_ca(GetStr(node["clientCA"]));
@@ -59,28 +61,28 @@ TeeErrorCode KubeConfigParser::ParseServer(const YAML::Node& node,
   return TEE_SUCCESS;
 }
 
-TeeErrorCode KubeConfigParser::Parse(tee::KubeConfig* conf) {
+TeeErrorCode KubeConfigParser::Parse(kubetee::KubeConfig* conf) {
   // Maybe the yaml is not loaded successfully
   if (doc_.IsNull()) {
     TEE_LOG_ERROR_TRACE();
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_PARAMETER_KUBECONFIG_PARSE;
   }
 
   // Must be the Config kind yaml file
   static constexpr char kYamlKindConfig[] = "Config";
   if (GetStr(doc_["kind"]) != kYamlKindConfig) {
     TEE_LOG_ERROR("File is not of '%s' kind", kYamlKindConfig);
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_PARAMETER_KUBECONFIG_PARSE;
   }
 
   // Check the top layer objects
   if (!doc_[kConfAdmin]) {
     TEE_LOG_ERROR("There is no '%s' field", kConfAdmin);
-    return TEE_ERROR_PARAMETERS;
+    return AECS_ERROR_PARAMETER_KUBECONFIG_PARSE;
   }
   if (!doc_[kConfServer]) {
     TEE_LOG_ERROR("There is no '%s' field", kConfServer);
-    return TEE_ERROR_PARAMETERS;
+    return AECS_ERROR_PARAMETER_KUBECONFIG_PARSE;
   }
 
   // Anyway, use try-catch to make sure there is no panic
@@ -90,7 +92,7 @@ TeeErrorCode KubeConfigParser::Parse(tee::KubeConfig* conf) {
     TEE_CHECK_RETURN(ParseServer(doc_[kConfServer], conf));
   } catch (std::exception& e) {
     TEE_LOG_ERROR("Fail to parse kubeconfig file: %s", e.what());
-    return TEE_ERROR_PARAMETERS;
+    return AECS_ERROR_PARAMETER_KUBECONFIG_PARSE;
   }
 
   return TEE_SUCCESS;

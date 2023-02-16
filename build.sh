@@ -1,1 +1,1 @@
-./tff/build.sh
+third_party/unified_attestation/build.sh

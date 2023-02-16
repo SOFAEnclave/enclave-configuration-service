@@ -2,27 +2,25 @@
 
 #include <string>
 
-#include "tee/common/error.h"
-#include "tee/common/log.h"
-#include "tee/untrusted/untrusted_config.h"
-#include "tee/untrusted/utils/untrusted_fs.h"
-
+#include "aecs/error.h"
 #include "untrusted/untrusted_aecs_config.h"
 #include "untrusted/untrusted_storage_backend.h"
 
-typedef TeeErrorCode (*StorageCreate)(const tee::StorageCreateRequest& req,
-                                      tee::StorageCreateResponse* res);
-typedef TeeErrorCode (*StorageDelete)(const tee::StorageDeleteRequest& req,
-                                      tee::StorageDeleteResponse* res);
-typedef TeeErrorCode (*StorageGetValue)(const tee::StorageGetValueRequest& req,
-                                        tee::StorageGetValueResponse* res);
-typedef TeeErrorCode (*StorageListAll)(const tee::StorageListAllRequest& req,
-                                       tee::StorageListAllResponse* res);
+typedef TeeErrorCode (*StorageCreate)(const kubetee::StorageCreateRequest& req,
+                                      kubetee::StorageCreateResponse* res);
+typedef TeeErrorCode (*StorageDelete)(const kubetee::StorageDeleteRequest& req,
+                                      kubetee::StorageDeleteResponse* res);
+typedef TeeErrorCode (*StorageGetValue)(
+    const kubetee::StorageGetValueRequest& req,
+    kubetee::StorageGetValueResponse* res);
+typedef TeeErrorCode (*StorageListAll)(
+    const kubetee::StorageListAllRequest& req,
+    kubetee::StorageListAllResponse* res);
 typedef TeeErrorCode (*StorageCheckExist)(
-    const tee::StorageCheckExistRequest& req,
-    tee::StorageCheckExistResponse* res);
+    const kubetee::StorageCheckExistRequest& req,
+    kubetee::StorageCheckExistResponse* res);
 
-namespace tee {
+namespace aecs {
 namespace untrusted {
 
 AecsStorageBackend::AecsStorageBackend() {
@@ -41,38 +39,41 @@ AecsStorageBackend::~AecsStorageBackend() {
   }
 }
 
-TeeErrorCode AecsStorageBackend::Create(const tee::StorageCreateRequest& req,
-                                        tee::StorageCreateResponse* res) {
+TeeErrorCode AecsStorageBackend::Create(
+    const kubetee::StorageCreateRequest& req,
+    kubetee::StorageCreateResponse* res) {
   TEE_LOG_DEBUG("Storage created: %s", req.name().c_str());
   if (!dlopen_lib_) {
     TEE_LOG_ERROR_TRACE();
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_INVALID_LIB_OPENED;
   }
 
   StorageCreate pfunc_create =
       (StorageCreate)dlsym(dlopen_lib_, "StorageCreate");
   if (!pfunc_create) {
     TEE_LOG_ERROR("Can not find StorageCreate function: %s", dlerror());
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_NO_FUNCTION_CREATE;
   }
 
   TEE_CHECK_RETURN((*pfunc_create)(req, res));
   return TEE_SUCCESS;
 }
 
-TeeErrorCode AecsStorageBackend::Delete(const tee::StorageDeleteRequest& req,
-                                        tee::StorageDeleteResponse* res) {
-  TEE_LOG_DEBUG("Storage delete: %s", req.prefix().c_str());
+TeeErrorCode AecsStorageBackend::Delete(
+    const kubetee::StorageDeleteRequest& req,
+    kubetee::StorageDeleteResponse* res) {
+  TEE_LOG_DEBUG("Storage delete prefix: %s", req.prefix().c_str());
+  TEE_LOG_DEBUG("Storage delete name: %s", req.name().c_str());
   if (!dlopen_lib_) {
     TEE_LOG_ERROR_TRACE();
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_INVALID_LIB_OPENED;
   }
 
   StorageDelete pfunc_delete =
       (StorageDelete)dlsym(dlopen_lib_, "StorageDelete");
   if (!pfunc_delete) {
     TEE_LOG_ERROR("Can not find StorageDelete function: %s", dlerror());
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_NO_FUNCTION_DELETE;
   }
 
   TEE_CHECK_RETURN((*pfunc_delete)(req, res));
@@ -80,37 +81,39 @@ TeeErrorCode AecsStorageBackend::Delete(const tee::StorageDeleteRequest& req,
 }
 
 TeeErrorCode AecsStorageBackend::GetValue(
-    const tee::StorageGetValueRequest& req, tee::StorageGetValueResponse* res) {
+    const kubetee::StorageGetValueRequest& req,
+    kubetee::StorageGetValueResponse* res) {
   TEE_LOG_DEBUG("Storage Get: %s", req.name().c_str());
   if (!dlopen_lib_) {
     TEE_LOG_ERROR_TRACE();
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_INVALID_LIB_OPENED;
   }
 
   StorageGetValue pfunc_get =
       (StorageGetValue)dlsym(dlopen_lib_, "StorageGetValue");
   if (!pfunc_get) {
     TEE_LOG_ERROR("Can not find StorageGetValue function: %s", dlerror());
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_NO_FUNCTION_GETVALUE;
   }
 
   TEE_CHECK_RETURN((*pfunc_get)(req, res));
   return TEE_SUCCESS;
 }
 
-TeeErrorCode AecsStorageBackend::ListAll(const tee::StorageListAllRequest& req,
-                                         tee::StorageListAllResponse* res) {
-  TEE_LOG_DEBUG("Storage list: %s", req.pattern().c_str());
+TeeErrorCode AecsStorageBackend::ListAll(
+    const kubetee::StorageListAllRequest& req,
+    kubetee::StorageListAllResponse* res) {
+  TEE_LOG_DEBUG("Storage list: %s", req.prefix().c_str());
   if (!dlopen_lib_) {
     TEE_LOG_ERROR_TRACE();
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_INVALID_LIB_OPENED;
   }
 
   StorageListAll pfunc_list =
       (StorageListAll)dlsym(dlopen_lib_, "StorageListAll");
   if (!pfunc_list) {
     TEE_LOG_ERROR("Can not find StorageListAll function: %s", dlerror());
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_NO_FUNCTION_LISTALL;
   }
 
   TEE_CHECK_RETURN((*pfunc_list)(req, res));
@@ -118,19 +121,19 @@ TeeErrorCode AecsStorageBackend::ListAll(const tee::StorageListAllRequest& req,
 }
 
 TeeErrorCode AecsStorageBackend::CheckExist(
-    const tee::StorageCheckExistRequest& req,
-    tee::StorageCheckExistResponse* res) {
+    const kubetee::StorageCheckExistRequest& req,
+    kubetee::StorageCheckExistResponse* res) {
   TEE_LOG_DEBUG("Storage CheckExist: %s", req.name().c_str());
   if (!dlopen_lib_) {
     TEE_LOG_ERROR_TRACE();
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_INVALID_LIB_OPENED;
   }
 
   StorageCheckExist pfunc_chk =
       (StorageCheckExist)dlsym(dlopen_lib_, "StorageCheckExist");
   if (!pfunc_chk) {
     TEE_LOG_ERROR("Can not find StorageCheckExist function: %s", dlerror());
-    return TEE_ERROR_UNEXPECTED;
+    return AECS_ERROR_STORAGE_NO_FUNCTION_CHECKEXIST;
   }
 
   TEE_CHECK_RETURN((*pfunc_chk)(req, res));
@@ -138,4 +141,4 @@ TeeErrorCode AecsStorageBackend::CheckExist(
 }
 
 }  // namespace untrusted
-}  // namespace tee
+}  // namespace aecs

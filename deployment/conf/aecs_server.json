@@ -1,5 +1,18 @@
 {
+  "aecs_attestation_report_cache": "disable",
+  "aecs_attestation_report_file": "",
+  "aecs_identity_keypair_cache": "disable",
+  "aecs_identity_keypair_file": "",
+  "aecs_rpc_remote_server": "",
+  "aecs_rpc_remote_port": "19528",
+  "aecs_rpc_server": "",
+  "aecs_rpc_port": "19527",
+  "aecs_rpc_ssl_secure": "disable",
+  "aecs_rpc_ca_path": "/etc/kubetee/certs/ca.crt",
+  "aecs_rpc_cert_path": "/etc/kubetee/certs/test1.crt",
+  "aecs_rpc_key_path": "/etc/kubetee/certs/test1.key",
   "aecs_admin_pubkey": "<base64-of-admin-public-pem>",
   "aecs_admin_password_hash": "",
-  "storage_backend_lib": "./libstorage_backend.so"
+  "aecs_storage_backend_lib": "./libstorage_backend.so",
+  "aecs_server_enclave": "./aecs_enclave.signed.so"
 }

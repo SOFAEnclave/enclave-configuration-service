@@ -9,51 +9,40 @@
 #include <sstream>
 #include <string>
 
-#include "tee/common/error.h"
-#include "tee/common/log.h"
-#include "tee/common/type.h"
+#include "unified_attestation/ua_untrusted.h"
 
 #include "./aecs_service.grpc.pb.h"
 #include "./aecs_service.pb.h"
 
-using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 
-using tee::Aecs;
-using tee::AecsAdminInitializeRequest;
-using tee::AecsAdminInitializeResponse;
-using tee::GetRemoteSecretRequest;
-using tee::GetRemoteSecretResponse;
-using tee::IasReport;
-using tee::RaReportAuthentication;
+using kubetee::Aecs;
+using kubetee::AecsAdminInitializeRequest;
+using kubetee::AecsAdminInitializeResponse;
+using kubetee::GetRemoteSecretRequest;
+using kubetee::GetRemoteSecretResponse;
+using kubetee::IasReport;
+using kubetee::UnifiedAttestationAuthReport;
 
 namespace aecs {
 namespace untrusted {
 
-constexpr int kTimeoutMs = 4000;
-constexpr char kSelfSignedCN[] = "enclave-service";
+constexpr int kAecsClientTimeoutMs = 10000;
 
-class AecsClient {
+class AecsClient : public kubetee::untrusted::TeeGrpcClient {
  public:
-  AecsClient(const std::string& ep,
-             const std::string& ca,
-             const std::string& key,
-             const std::string& cert);
+  AecsClient(const std::string& endpoint,
+             const std::string& ssl_secure,
+             const std::string& ssl_ca,
+             const std::string& ssl_key,
+             const std::string& ssl_cert);
   ~AecsClient() {}
-
-  std::unique_ptr<Aecs::Stub> PrepareSecureStub(const std::string& ep,
-                                                const std::string& ca,
-                                                const std::string& key,
-                                                const std::string& cert);
 
   TeeErrorCode GetRemoteSecret(const GetRemoteSecretRequest& request,
                                GetRemoteSecretResponse* response);
 
  private:
-  bool WaitForChannelReady(std::shared_ptr<Channel> channel);
-  TeeErrorCode CheckStatusCode(const Status& status);
-
   std::unique_ptr<Aecs::Stub> stub_;
 };
 

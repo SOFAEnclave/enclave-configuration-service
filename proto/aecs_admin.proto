@@ -1,18 +1,21 @@
-syntax = "proto2";
+syntax = "proto3";
 
-package tee;
+package kubetee;
 
-import "kubetee.proto";
+import "attestation.proto";
 import "aecs.proto";
 
+option java_package = "com.alipay.kubetee.aecs.proto.v1";
+
 message KubeConfig {
-  optional string name = 1;
-  optional string identity_key = 2;
-  optional string client_key = 3;
-  optional string client_cert = 4;
-  optional string client_ca = 5;
-  optional string server_endpoint = 6;
-  optional EnclaveMatchRules server_info = 7;
+  string name = 1;
+  string identity_key = 2;
+  string client_rpc_secure = 3;
+  string client_key = 4;
+  string client_cert = 5;
+  string client_ca = 6;
+  string server_endpoint = 7;
+  UnifiedAttestationPolicy server_policy = 8;
 }
 
 message SecretsParseResult {

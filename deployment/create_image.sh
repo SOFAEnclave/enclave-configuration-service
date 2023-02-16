@@ -21,8 +21,8 @@ rm -rf $BUILDOUTDIR/*.a
 rm -rf $BUILDOUTDIR/{parse,read,sandbox}
 ls $BUILDOUTDIR
 
-# Use the start_aesmd.sh file in TFF repo
-cp $THISDIR/../tff/deployment/bin/start_aesm.sh $THISDIR/bin
+# Use the start_aesm.sh file in unified attestation
+cp $THISDIR/../third_party/unified_attestation/deployment/bin/start_aesm.sh $THISDIR/bin
 
 if [ -e "$BUILDOUTDIR/aecs_enclave.signed.so" ] ; then
     echo "IMAGE: $IMAGENAME"

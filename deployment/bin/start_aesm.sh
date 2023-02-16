@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 
+# Check whether there is sgx device
+if [ -e /dev/isgx ] ; then
+    echo "Found sgx1 device"
+    AESM_SERVICE_DIR="/opt/intel/sgxpsw/aesm"
+elif [ -e /dev/sgx_enclave -o -e /dev/sgx/enclave ] ; then
+    echo "Found sgx2 device"
+    AESM_SERVICE_DIR="/opt/intel/sgx-aesm-service/aesm"
+else
+    echo "There is no sgx device"
+    exit 1
+fi
+
 # Start aesmd if it is not running
 if ! pgrep "aesm_service" > /dev/null ; then
     echo "Start aesmd service ..."
-    LD_LIBRARY_PATH="/usr/local/lib:/opt/intel/sgxpsw/aesm:$LD_LIBRARY_PATH" \
-        /opt/intel/sgxpsw/aesm/aesm_service
+    LD_LIBRARY_PATH="/usr/local/lib:/usr/lib64:${AESM_SERVICE_DIR}:$LD_LIBRARY_PATH" \
+        $AESM_SERVICE_DIR/aesm_service
 else
     echo "aesmd service is already started"
 fi
-
-sleep 5  # anyway, sleep a moment and then try to check
-for ((i=0;i<5;i++)) ; do
-    if [ -e /dev/isgx -a -e /var/opt/aesmd/data/white_list_cert.bin ] ; then
-        break
-    else
-        echo "Wait $i/5 seconds for isgx and white list file"
-        sleep 1
-   fi
-done

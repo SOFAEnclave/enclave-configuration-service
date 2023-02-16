@@ -2,7 +2,8 @@
 find_package(Protobuf REQUIRED)
 find_package(GRPC REQUIRED)
 set(AECS_PROTO_FILES
-    ${TEE_TOP_DIR}/proto/kubetee.proto
+    ${UAL_TOP_DIR}/proto/attestation.proto
+    ${UAL_TOP_DIR}/proto/crypto.proto
     ${AECS_TOP_DIR}/proto/aecs.proto
     ${AECS_TOP_DIR}/proto/aecs_service.proto
     ${AECS_TOP_DIR}/proto/aecs_admin.proto
@@ -34,16 +35,20 @@ foreach(_target aecsadmin serviceadmin)
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${AECS_TOP_DIR}
         ${AECS_BINARY_DIR}/third_party/gflags/include
+        ${AECS_TOP_DIR}
+        ${AECS_TOP_DIR}/include
         ${AECS_TOP_DIR}/third_party/yaml-cpp/include
-        ${TEE_TOP_DIR}/sdk/include
+        ${UAL_TOP_DIR}
+        ${UAL_TOP_DIR}/include
     )
     target_link_libraries(${_target}
-        -L${LIBRARY_OUTPUT_PATH}
-        protobuf::libprotobuf gRPC::grpc++_reflection
+        -L${LIBRARY_OUTPUT_PATH} -L/usr/local/lib
+        -lprotobuf
+        gRPC::grpc++_reflection
         gflags_nothreads yaml-cpp
-        challenger ukubetee
+        -Wl,--start-group -lua_ugrpc ${UAL_LIBS_LINK} -Wl,--end-group
+        -Wl,-rpath=.:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64:${SGX_LIBRARY_DIR}
     )
-    add_dependencies(${_target} gflags yaml-cpp ukubetee challenger)
+    add_dependencies(${_target} gflags yaml-cpp ${UAL_LIBS_NAME})
 endforeach(_target)

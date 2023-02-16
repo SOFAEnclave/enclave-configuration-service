@@ -3,76 +3,66 @@
 
 #include <string>
 
+#include "./sgx_quote.h"
+#include "./sgx_report.h"
 #include "./sgx_urts.h"
 #include "./sgx_utils.h"
 
-#include "grpcpp/grpcpp.h"
+#include "unified_attestation/ua_untrusted.h"
 
-#include "tee/common/error.h"
-#include "tee/common/type.h"
-#include "tee/untrusted/utils/untrusted_fs.h"
+#include "grpcpp/grpcpp.h"
 
 #include "./aecs_service.grpc.pb.h"
 #include "./aecs_service.pb.h"
 
-constexpr char kIdentityName[] = "EnclaveIdentity";
-
 using grpc::Server;
-using grpc::ServerBuilder;
-using grpc::ServerContext;
-using grpc::ServerCredentials;
-using grpc::SslServerCredentials;
-using grpc::SslServerCredentialsOptions;
 using grpc::Status;
 
-using tee::DigitalEnvelopeEncrypted;
-using tee::EnclaveInformation;
-using tee::EnclaveMatchRules;
-using tee::EnclaveSecretPolicy;
-using tee::IasReport;
-using tee::PbGenericRequest;
-using tee::PbGenericResponse;
-using tee::RaReportAuthentication;
-using tee::SymmetricKeyEncrypted;
+using kubetee::DigitalEnvelopeEncrypted;
+using kubetee::UnifiedAttestationAuthReport;
+using kubetee::UnifiedAttestationNestedPolicy;
 
-using tee::Aecs;
+using kubetee::AdminRemoteCallRequest;
+using kubetee::AdminRemoteCallResponse;
+using kubetee::GetAecsStatusRequest;
+using kubetee::GetAecsStatusResponse;
+using kubetee::GetEnclaveSecretPublicRequest;
+using kubetee::GetEnclaveSecretPublicResponse;
+using kubetee::GetEnclaveSecretRequest;
+using kubetee::GetEnclaveSecretResponse;
+using kubetee::GetRemoteSecretRequest;
+using kubetee::GetRemoteSecretResponse;
+using kubetee::SyncWithRemoteAecsRequest;
+using kubetee::SyncWithRemoteAecsResponse;
 
-using tee::GetRemoteSecretRequest;
-using tee::GetRemoteSecretResponse;
-
-using tee::CreateEnclaveSecretRequest;
-using tee::CreateEnclaveSecretResponse;
-using tee::DestroyEnclaveSecretRequest;
-using tee::DestroyEnclaveSecretResponse;
-using tee::GetEnclaveSecretRequest;
-using tee::GetEnclaveSecretResponse;
-using tee::GetIdentityPublicKeyRequest;
-using tee::GetIdentityPublicKeyResponse;
-using tee::ListEnclaveSecretRequest;
-using tee::ListEnclaveSecretResponse;
-
-using tee::AdminRemoteCallRequest;
-using tee::AdminRemoteCallResponse;
-using tee::ListEnclaveServiceRequest;
-using tee::ListEnclaveServiceResponse;
-using tee::RegisterEnclaveServiceRequest;
-using tee::RegisterEnclaveServiceResponse;
-
-#define RETURN_ERROR(msg)                           \
-  do {                                              \
-    TEE_LOG_ERROR(msg);                             \
-    return Status(grpc::StatusCode::INTERNAL, msg); \
-  } while (0)
+#define RETURN_ERROR(err, msg)                                              \
+  if ((err) != TEE_SUCCESS) {                                               \
+    constexpr size_t kMaxMsgBufSize = 4096;                                 \
+    char buf[kMaxMsgBufSize] = {'\0'};                                      \
+    snprintf(buf, kMaxMsgBufSize, "%s | Error code: 0x%08X", (msg), (err)); \
+    TEE_LOG_ERROR("%s", buf);                                               \
+    return Status(grpc::StatusCode::INTERNAL, buf);                         \
+  }
 
 #define GRPC_INTERFACE_ENTER_DEBUG() \
-  TEE_LOG_DEBUG("GRPC SERVER INTERFACE:%s", __FUNCTION__)
+  TEE_LOG_DEBUG("GRPC SERVER INTERFACE ENTER:%s", __FUNCTION__)
+#define GRPC_INTERFACE_EXIT_DEBUG() \
+  TEE_LOG_DEBUG("GRPC SERVER INTERFACE EXIT:%s", __FUNCTION__)
 
 namespace aecs {
 namespace untrusted {
 
-class AecsServiceImpl final : public Aecs::Service {
+class AecsServiceImpl final : public kubetee::Aecs::Service {
  public:
   // For AECS enclaves
+  Status GetAecsStatus(ServerContext* context,
+                       const GetAecsStatusRequest* req,
+                       GetAecsStatusResponse* res);
+
+  Status SyncWithRemoteAecs(ServerContext* context,
+                            const SyncWithRemoteAecsRequest* req,
+                            SyncWithRemoteAecsResponse* res);
+
   Status GetRemoteSecret(ServerContext* context,
                          const GetRemoteSecretRequest* req,
                          GetRemoteSecretResponse* res);
@@ -90,29 +80,34 @@ class AecsServiceImpl final : public Aecs::Service {
                           const GetEnclaveSecretRequest* req,
                           GetEnclaveSecretResponse* res);
 
+  // For non tee client and all
+  Status GetEnclaveSecretPublic(ServerContext* context,
+                                const GetEnclaveSecretPublicRequest* req,
+                                GetEnclaveSecretPublicResponse* res);
+
   TeeErrorCode InitializeServerImpl(EnclaveInstance* enclave);
-  TeeErrorCode CheckRaAuthentication(const RaReportAuthentication& auth);
-  TeeErrorCode GetServerRaAuthentication(RaReportAuthentication* auth);
+  TeeErrorCode CheckRaAuthentication(const UnifiedAttestationAuthReport& auth);
+  TeeErrorCode GetServerRaAuthentication(UnifiedAttestationAuthReport* auth);
+  TeeErrorCode AecsSyncFromRemote(const std::string& remote_endpoint);
 
  private:
   TeeErrorCode VerifySignatureAuth(const std::string& data,
                                    const std::string& signature);
-  TeeErrorCode CheckMatchRules(const RaReportAuthentication& auth,
-                               const EnclaveMatchRules& match_rules);
-  TeeErrorCode GetMatchRulesFromRaReport(const RaReportAuthentication& auth,
-                                         EnclaveMatchRules* rule);
+  TeeErrorCode CheckMatchRules(
+      const UnifiedAttestationAuthReport& auth,
+      const UnifiedAttestationNestedPolicy& match_rules);
+  TeeErrorCode GetMatchRulesFromRaReport(
+      const UnifiedAttestationAuthReport& auth,
+      UnifiedAttestationNestedPolicy* rule);
   Status GetEnclaveSecret_(const std::string& secret_name,
-                           const RaReportAuthentication& auth,
+                           const UnifiedAttestationAuthReport& auth,
                            DigitalEnvelopeEncrypted* keys_enc);
 
   EnclaveInstance* enclave_;
-  IasReport server_ias_report_;
 };
 
-class AecsServer {
+class AecsServer : public kubetee::untrusted::TeeGrpcServer {
  public:
-  AecsServer();
-
   TeeErrorCode InitServer(EnclaveInstance* enclave);
   TeeErrorCode RunServer();
 
@@ -124,6 +119,7 @@ class AecsServer {
   std::string root_server_;
   std::string root_port_;
   std::string rpc_port_;
+  std::string ssl_secure_;
   std::string ssl_cert_;
   std::string ssl_key_;
   std::string ssl_ca_;

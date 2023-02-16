@@ -19,19 +19,19 @@ BUILDOPT="$@"
 echo "Build options: $BUILDOPT"
 
 REPONAME="$(basename $BUILDDIR)"
-IMAGE=antkubetee/kubetee-dev-ubuntu18.04-grpc-sgx-ssl:2.0
+IMAGE=antkubetee/kubetee-dev-sgx:2.0-ubuntu20.04-sgx2.17.1
 CONTAINERNAME="kubetee-build-$REPONAME"
 
 echo "Build directory: $BUILDDIR"
 cd $BUILDDIR || exit 1
 sudo rm -rf ./build/*
 sudo docker run -t --rm \
+    --privileged \
     --name $CONTAINERNAME \
-    --device=/dev/isgx \
     --net=host \
     -v $BUILDDIR:/root/$REPONAME \
     -w /root/$REPONAME \
     --cap-add=SYS_PTRACE \
     --security-opt seccomp=unconfined \
     $IMAGE \
-    bash -c "./build.sh $BUILDOPT" || exit 1
+    bash -c "./build.sh --mode SIM --build Release $BUILDOPT" || exit 1

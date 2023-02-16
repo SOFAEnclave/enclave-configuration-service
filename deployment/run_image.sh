@@ -22,8 +22,9 @@ trap clean_up SIGINT SIGQUIT SIGTERM
 # Start the application in container
 sudo docker run -it --rm \
     --name $CONTAINERNAME \
-    --device=/dev/isgx \
+    --privileged \
     --net=host \
+    --env LD_LIBRARY_PATH=/opt/intel/sgxsdk/lib64/ \
     -v $THISDIR/storage:/root/storage \
     --cap-add=SYS_PTRACE \
     --security-opt seccomp=unconfined \

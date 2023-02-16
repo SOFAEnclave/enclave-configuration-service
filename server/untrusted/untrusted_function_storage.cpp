@@ -1,17 +1,14 @@
 #include <string>
 
-#include "tee/common/error.h"
-#include "tee/common/type.h"
+#include "unified_attestation/ua_untrusted.h"
 
-#include "tee/untrusted/enclave/untrusted_enclave.h"
-#include "tee/untrusted/untrusted_pbcall.h"
-
+#include "untrusted/untrusted_function_storage.h"
 #include "untrusted/untrusted_storage_backend.h"
 
 #include "./aecs.pb.h"
 #include "./enclave_u.h"
 
-using tee::untrusted::AecsStorageBackend;
+using aecs::untrusted::AecsStorageBackend;
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,71 +16,61 @@ extern "C" {
 
 TeeErrorCode ReeStorageCreate(const std::string& req_str,
                               std::string* res_str) {
-  tee::StorageCreateRequest req;
-  tee::StorageCreateResponse res;
+  kubetee::StorageCreateRequest req;
+  kubetee::StorageCreateResponse res;
+  JSON2PB(req_str, &req);
 
-  PB_PARSE(req, req_str);
   TEE_CHECK_RETURN(AecsStorageBackend::GetInstance().Create(req, &res));
 
-  PB_SERIALIZE(res, res_str);
+  PB2JSON(res, res_str);
   return TEE_SUCCESS;
 }
 
 TeeErrorCode ReeStorageDelete(const std::string& req_str,
                               std::string* res_str) {
-  tee::StorageDeleteRequest req;
-  tee::StorageDeleteResponse res;
+  kubetee::StorageDeleteRequest req;
+  kubetee::StorageDeleteResponse res;
+  JSON2PB(req_str, &req);
 
-  PB_PARSE(req, req_str);
   TEE_CHECK_RETURN(AecsStorageBackend::GetInstance().Delete(req, &res));
 
-  PB_SERIALIZE(res, res_str);
+  PB2JSON(res, res_str);
   return TEE_SUCCESS;
 }
 
 TeeErrorCode ReeStorageGetValue(const std::string& req_str,
                                 std::string* res_str) {
-  tee::StorageGetValueRequest req;
-  tee::StorageGetValueResponse res;
+  kubetee::StorageGetValueRequest req;
+  kubetee::StorageGetValueResponse res;
+  JSON2PB(req_str, &req);
 
-  PB_PARSE(req, req_str);
   TEE_CHECK_RETURN(AecsStorageBackend::GetInstance().GetValue(req, &res));
 
-  PB_SERIALIZE(res, res_str);
+  PB2JSON(res, res_str);
   return TEE_SUCCESS;
 }
 
 TeeErrorCode ReeStorageListAll(const std::string& req_str,
                                std::string* res_str) {
-  tee::StorageListAllRequest req;
-  tee::StorageListAllResponse res;
+  kubetee::StorageListAllRequest req;
+  kubetee::StorageListAllResponse res;
+  JSON2PB(req_str, &req);
 
-  PB_PARSE(req, req_str);
   TEE_CHECK_RETURN(AecsStorageBackend::GetInstance().ListAll(req, &res));
 
-  PB_SERIALIZE(res, res_str);
+  PB2JSON(res, res_str);
   return TEE_SUCCESS;
 }
 
 TeeErrorCode ReeStorageCheckExist(const std::string& req_str,
                                   std::string* res_str) {
-  tee::StorageCheckExistRequest req;
-  tee::StorageCheckExistResponse res;
+  kubetee::StorageCheckExistRequest req;
+  kubetee::StorageCheckExistResponse res;
+  JSON2PB(req_str, &req);
 
-  PB_PARSE(req, req_str);
   TEE_CHECK_RETURN(AecsStorageBackend::GetInstance().CheckExist(req, &res));
 
-  PB_SERIALIZE(res, res_str);
-  return TEE_SUCCESS;
-}
-
-TeeErrorCode RegisterUntrustedPbFunctionsEx() {
-  ELOG_DEBUG("Register application untrusted functions");
-  ADD_UNTRUSTED_PBCALL_FUNCTION(ReeStorageCreate);
-  ADD_UNTRUSTED_PBCALL_FUNCTION(ReeStorageDelete);
-  ADD_UNTRUSTED_PBCALL_FUNCTION(ReeStorageGetValue);
-  ADD_UNTRUSTED_PBCALL_FUNCTION(ReeStorageListAll);
-  ADD_UNTRUSTED_PBCALL_FUNCTION(ReeStorageCheckExist);
+  PB2JSON(res, res_str);
   return TEE_SUCCESS;
 }
 

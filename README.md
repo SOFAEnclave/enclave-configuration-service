@@ -32,11 +32,7 @@ $ git submodule update --init --recursive
 
 ## Create the Docker Image
 
-
-Please set the enclave SPID and IAS access key in the configuration file "deployment/conf/kubetee.json" before create image.
-You can apply the IAS access key and SPID from [here](https://api.portal.trustedservices.intel.com/EPID-attestation)
-
-And you also need to generate the test certificates like this (for development and test only, should use formal certificates in product environment):
+You need to generate the test certificates like this (for development and test only, should use formal certificates in product environment):
 
 ```
 ./deployment/generate_certs_and_kubeconfig.sh
@@ -62,7 +58,7 @@ Then create the image with test certificates and configurations.
 ./deployment/run_image.sh ./aecsadmin --config /etc/kubetee/aecs_admin_test.kubeconfig --action provision --hostname localtest
 
 # Create a enclave service named "service1" and list it
-./deployment/run_image.sh ./aecsadmin --config /etc/kubetee/aecs_admin_test.kubeconfig --action register --service service1 --pubkey /etc/certs/service_public.pem
+./deployment/run_image.sh ./aecsadmin --config /etc/kubetee/aecs_admin_test.kubeconfig --action register --service service1 --pubkey /etc/certs/service_admin_public.pem
 ./deployment/run_image.sh ./aecsadmin --config /etc/kubetee/aecs_admin_test.kubeconfig --action list
 ```
 

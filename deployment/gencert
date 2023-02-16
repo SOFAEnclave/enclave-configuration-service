@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+
+RSABITS=4096
+CAKEY="ca.key"
+CACRT="ca.crt"
+DEBUG="${DEBUG:-0}"
+
+
+generate_key() {
+    local keyfile="$1"
+
+    if [ -z "$keyfile" ] ; then
+        echo "Please specify a key file path!"
+        exit 1
+    fi
+
+    openssl genrsa -out $keyfile $RSABITS && \
+    echo "Generate key file here: $crtfile"
+}
+
+generate_ca() {
+    local subject="/CN=${1:-SigningCA}"
+
+    generate_key $CAKEY && \
+    openssl req -x509 -new -nodes -key $CAKEY \
+        -subj "$subject" -days 7300 -out $CACRT
+
+    [ "$?" == 0 ] || return 1
+    [ "$DEBUG" == "1" ] && openssl x509 -in $CACRT -text -noout
+    echo "Generate CA certificate file here: $CACRT"
+}
+
+generate_csr() {
+    local keyfile="$1"
+    local csrfile="$2"
+    local subject="/CN=${3}"
+
+    openssl req -new -key $keyfile -subj "$subject" -out $csrfile
+
+    [ "$?" == 0 ] || return 1
+    [ "$DEBUG" == "1" ] && openssl req -text -noout -subject -in $csrfile
+    echo "Generate certificate signing request file here: $csrfile"
+}
+
+sign_csr() {
+    local csrfile="$1"
+    local crtfile="$2"
+    local crtdays="${3:-365}"
+
+    openssl x509 -req -CA $CACRT -CAkey $CAKEY -CAcreateserial \
+        -in $csrfile -out $crtfile -days $crtdays
+
+    [ "$?" == 0 ] || return 1
+    [ "$DEBUG" == "1" ] && openssl x509 -in $crtfile -text -noout
+    echo "Generate certificate file here: $crtfile"
+}
+
+generate_crt() {
+    local prefix="$1"
+    local cn="$2"
+    local dir="$(dirname $prefix)"
+
+    mkdir -p $dir
+    generate_key ${prefix}.key && \
+    generate_csr ${prefix}.key ${prefix}.csr $cn && \
+    sign_csr ${prefix}.csr ${prefix}.crt
+
+    if [ "$?" == 0 ] ; then
+        rm -rf ${prefix}.csr
+        [ "$dir" != "." ] && cp ./ca.crt $dir/
+        [ "$DEBUG" == "1" ] && openssl x509 -in ${prefix}.crt -text -noout
+        return 0
+    else
+        rm -rf ${prefix}.key  ${prefix}.csr ${prefix}.crt
+        return 1
+    fi
+}
+
+show_crt() {
+    openssl x509 -in $1 -text -noout
+}
+
+revoke_cert() {
+    #openssl ca -revoke cert.pem -config openssl.cnf
+    #openssl ca -gencrl -out cacert.crl -config openssl.cnf
+    #openssl crl -in cacert.crl -text -noout
+    return 0
+}
+
+generate_all() {
+    local workdir="${1:-./}"
+    local testCA="AECSCertificateCenter"
+    local server="aecs_server"
+    local client="aecs_client"
+    local aecsadmin="aecs_admin"
+    local serviceadmin="service_admin"
+    local ret=0
+
+    mkdir -p $workdir && \
+    cd $workdir && \
+    echo "--[CA key&crt]-----------------------------------------------"
+    generate_ca $testCA && \
+    echo "--[server key]-----------------------------------------------" && \
+    generate_key ${server}.key && \
+    echo "--[server csr]-----------------------------------------------" && \
+    generate_csr ${server}.key ${server}.csr "enclave-service" && \
+    echo "--[server crt]-----------------------------------------------" && \
+    sign_csr ${server}.csr ${server}.crt && \
+    echo "--[client key]-----------------------------------------------" && \
+    generate_key ${client}.key && \
+    echo "--[client csr]-----------------------------------------------" && \
+    generate_csr ${client}.key ${client}.csr "enclave-service" && \
+    echo "--[client crt]-----------------------------------------------" && \
+    sign_csr ${client}.csr ${client}.crt && \
+    echo "--[AECS admin key]-----------------------------------------------" && \
+    generate_key ${aecsadmin}.key && \
+    echo "--[AECS admin csr]-----------------------------------------------" && \
+    generate_csr ${aecsadmin}.key ${aecsadmin}.csr "enclave-service" && \
+    echo "--[AECS admin crt]-----------------------------------------------" && \
+    sign_csr ${aecsadmin}.csr ${aecsadmin}.crt && \
+    echo "--[Service admin key]-----------------------------------------------" && \
+    generate_key ${serviceadmin}.key && \
+    echo "--[Service admin csr]-----------------------------------------------" && \
+    generate_csr ${serviceadmin}.key ${serviceadmin}.csr "enclave-service" && \
+    echo "--[Service admin crt]-----------------------------------------------" && \
+    sign_csr ${serviceadmin}.csr ${serviceadmin}.crt
+    ret=$?
+    echo "-------------------------------------------------------------"
+
+    if [ "$ret" == 0 ] ; then
+        return 0
+    else
+        rm -rf ca\.* ${server}\.*  ${client}\.* ${aecsadmin}\.* ${serviceadmin}\.*
+        return 1
+    fi
+}
+
+show_help() {
+    echo "Usage: $(basename $0) <Sub Commands with required parameters>"
+    echo "    genca [CN]"
+    echo "    genkey <keyfile>"
+    echo "    gencsr <keyfile> <csrfile> <CN>"
+    echo "    gencrt <filename-prefix> <CN>"
+    echo "    signcsr <csrfile> <crtfile> [days|or-default-365]"
+    echo "    showcrt <crtfile>"
+    echo "    genall [outdir]  #This command generate all ca/key/cert"
+}
+
+case $1 in
+    genca)          generate_ca $2 ;;
+    genkey)         generate_key "$2" ;;
+    gencsr)         generate_csr "$2" "$3" "$4" ;;
+    gencrt)         generate_crt "$2" "$3" ;;
+    signcsr)        sign_csr "$2" "$3" "$4" ;;
+    showcrt)        show_crt "$2" ;;
+    genall)         generate_all $2 ;;
+    -h|--help|help) show_help ; exit 0 ;;
+    *)              show_help ; exit 1 ;;
+esac

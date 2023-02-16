@@ -3,23 +3,23 @@
 
 #include <string>
 
-#include "tee/common/error.h"
-#include "tee/common/log.h"
-#include "tee/untrusted/utils/untrusted_json.h"
+#include "unified_attestation/ua_untrusted.h"
 
-namespace tee {
+#include "aecs/untrusted_config.h"
+
+namespace aecs {
 namespace untrusted {
 
-constexpr char kAecsConfFile[] = "aecs_server.json";
+TeeErrorCode AecsGetRpcConfig(std::string* ssl_secure,
+                              std::string* ssl_ca,
+                              std::string* ssl_key,
+                              std::string* ssl_cert);
 
-constexpr char kAecsConfBackendLib[] = "storage_backend_lib";
-constexpr char kAecsConfAdminPubKey[] = "aecs_admin_pubkey";
-constexpr char kAecsConfAdminPasswordHash[] = "aecs_admin_password_hash";
+TeeErrorCode AecsGetEnvConfig(std::string* root_server,
+                              std::string* root_rpc,
+                              std::string* rpc_port);
 
 }  // namespace untrusted
-}  // namespace tee
-
-#define AECS_CONF_STR(name) \
-  JSON_CONF_STR(tee::untrusted::kAecsConfFile, tee::untrusted::name)
+}  // namespace aecs
 
 #endif  // SERVER_UNTRUSTED_UNTRUSTED_AECS_CONFIG_H_
