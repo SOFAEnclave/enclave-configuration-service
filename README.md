@@ -3,34 +3,63 @@
 Attestation based Enclave Configuration service
 
 
-## Introduction to KubeTEE AECS
-KubeTEE AECS is based on KubeTEE Trusted Function Framework, and provide the
-secret generation, management, storage and dispatch service to TEE applications.
-After bidirectional authentication based on remote attestation between AECS and
-all TEE-based application service, each service enclave instance will get the secrets
-from AECS server, and use the secrets for later data encryption or decryption.
+## 1 Introduction to KubeTEE AECS
+
+KubeTEE AECS provides the secret generation, management, storage and dispatch
+service to TEE applications. After bidirectional authentication based on
+remote attestation between AECS and all TEE-based application service,
+each service enclave instance will share the secrets from AECS server,
+and use the secrets for later use cases.
 
 ![AECS](docs/aecs.jpg)
 
+As far as now, we support the following type of secrets:
 
-## Quick Start
+- AES-GCM 256 key
+- RSA key pair
+- SM2 key pair
+- Self-signed certificate and key
+- Secret imported by user (Bring your own seret)
+- Application sensitive configurations as key-value pair
 
-## Update sub-modules
+
+## 2 Quick Start
+
+
+### 2.1 Run prebuild AECS server for test only
+
+We provide a public docker image for AECS server test only. It's runing in
+simulation mode and also has debug log messages. Try it simply like this:
+
+```
+./deployment/start.sh start  # stop command to stop it
+```
+
+
+### 2.2 Build the test AECS server from source code
+
+In case you want to build the AECS and create the docker image by your self,
+please follow the steps (2.2.1 ~ 2.2.4) below.
+
+
+#### 2.2.1 Update sub-modules
 
 If it's the first time you build the project after clone the source code,
 please update the sub-modules like the this.
 
 ```
-$ git submodule update --init --recursive
+git submodule update --init --recursive
 ```
 
-### Build Project in Docker Environment
+
+#### 2.2.2 Build Project in Docker Environment
 
 ```
 ./deployment/dockerbuild.sh [--build Debug]
 ```
 
-## Create the Docker Image
+
+#### 2.2.3 Create the Docker Image
 
 You need to generate the test certificates like this (for development and test only, should use formal certificates in product environment):
 
@@ -44,13 +73,13 @@ Then create the image with test certificates and configurations.
 ./deployment/create_image.sh
 ```
 
-### To Start the AECS server
+#### 2.2.4 Start the AECS server
 
 ```
 ./deployment/run_image.sh ./aecs_server
 ```
 
-### Manage the Enclave Service
+### 2.3 Manage the Enclave Service
 
 ```
 # Save the AECS identity key into storage for backup for the first time to start the aecs server
@@ -62,7 +91,7 @@ Then create the image with test certificates and configurations.
 ./deployment/run_image.sh ./aecsadmin --config /etc/kubetee/aecs_admin_test.kubeconfig --action list
 ```
 
-### Manage the Enclave Service Secrets
+### 2.4 Manage the Enclave Service Secrets
 
 ```
 # Create three test secrets for service1 and list all of them
@@ -70,7 +99,7 @@ Then create the image with test certificates and configurations.
 ./deployment/run_image.sh ./serviceadmin --config /etc/kubetee/service_admin_test.kubeconfig --action list
 ```
 
-## Contributing
+## 3 Contributing
 
 KubeTEE AECS is not final stable at this moment. There will be some improvements or new feature updates later.
 Anyone is also welcome to provide any form of contribution, please see CONTRIBUTING.md for details.
@@ -78,6 +107,6 @@ Anyone is also welcome to provide any form of contribution, please see CONTRIBUT
 For any security vulnerabilities or other problems, please contact us by [email](mailto:SOFAEnclaveSecurity@list.alibaba-inc.com).
 
 
-## License
+## 4 License
 KubeTEE AECS is released by Ant Group under Apache 2.0 License and also used some other opensource code.
 See the license information [here](LICENSE) for detail.

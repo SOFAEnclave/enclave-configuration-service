@@ -2,7 +2,7 @@
 
 THISDIR="$(readlink -f $(dirname $0))"
 DOCKERFILE="${1:-${THISDIR}/dockerfile/Dockerfile}"
-IMAGENAME="${2:-kubetee-aecs-service:1.0}"
+IMAGENAME="${2:-antkubetee/kubetee-aecs-test:2.0}"
 #IMAGETAG="$(date +%F-%H%M%S)"
 
 if [ ! -f "$DOCKERFILE" ] ; then

@@ -3,7 +3,7 @@
 SCRIPTNAME="$(basename $0)"
 THISDIR="$(dirname $(readlink -f $0))"
 
-IMAGE="kubetee-aecs-service:1.0"
+IMAGE="antkubetee/kubetee-aecs-test:2.0"
 CONTAINERNAME="kubetee-aecs-service-$$"
 if [ -z "$IMAGE" ] ; then
     echo "Usage: $SCRIPTNAME <image:tag> [container-name]"
