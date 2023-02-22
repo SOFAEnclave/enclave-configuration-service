@@ -2,10 +2,9 @@
 
 CURRDIR="$(pwd)"
 WORKDIR="$(basename $CURRDIR)"
-NAMEPREFIX="$(whoami)-aecs"
 
-ACTION=$1
-ENVTYPE=$2
+ACTION=${1}
+ENVTYPE=${2#"--"} # $2: --sgxsdk|--occlum|--ubuntu
 
 DEVICE_SGX1="isgx"
 DEVICE_SGX2="sgx_enclave sgx_provision"
@@ -44,6 +43,7 @@ docker_init() {
       $volumeopt \
       -v $CURRDIR:/root/$WORKDIR \
       -w /root/$WORKDIR \
+      --user root \
       $IMAGE \
       bash
 }
@@ -57,34 +57,68 @@ docker_delete() {
 }
 
 # If environment is not specified, decide it by device name
+# Support sgx-epid|sgx-dcap|hyperenclave|no-tee now
+if [ -z "$TEETYPE" ] ; then
+    [ -e /dev/$(echo $DEVICE_SGX1 | awk '{print $1}') ] && TEETYPE="sgx1-epid"
+    [ -e /dev/$(echo $DEVICE_SGX2 | awk '{print $1}') ] && TEETYPE="sgx2-dcap"
+    [ -e /dev/$(echo $DEVICE_HYPERENCLAVE | awk '{print $1}') ] && TEETYPE="hyperenclave"
+    [ -z "$TEETYPE" ] && TEETYPE="no-tee"
+fi
 if [ -z "$ENVTYPE" ] ; then
-    [ -e /dev/$(echo $DEVICE_SGX1 | awk '{print $1}') ] && ENVTYPE="--sgx1-epid"
-    [ -e /dev/$(echo $DEVICE_SGX2 | awk '{print $1}') ] && ENVTYPE="--sgx2-dcap"
-    [ -e /dev/$(echo $DEVICE_HYPERENCLAVE | awk '{print $1}') ] && ENVTYPE="--hyperenclave"
+    ENVTYPE="sgxsdk"
 fi
 
-case "$ENVTYPE" in
-    --sgx1-epid)
+echo "TEE Type: $TEETYPE"
+echo "Environment: $ENVTYPE"
+
+if [ "$ENVTYPE" == "sgxsdk" ] ; then
+case "$TEETYPE" in
+    sgx1-epid)
         IMAGE="antkubetee/kubetee-dev-ubuntu18.04-grpc-sgx-ssl:2.0"
-        CONTAINERNAME="${NAMEPREFIX}-sgx1-ubuntu18.04-$WORKDIR"
         TEE_DEVICES="$DEVICE_SGX1"
         ;;
-    --sgx2-dcap)
+    sgx2-dcap)
         IMAGE="antkubetee/kubetee-dev-sgx:2.0-ubuntu20.04-sgx2.17.1"
-        CONTAINERNAME="${NAMEPREFIX}-sgx2-ubuntu20.04-$WORKDIR"
         TEE_DEVICES="$DEVICE_SGX2"
         TEE_VOLUMES="$VOLUME_SGX2"
         ;;
-    --hyperenclave)
+    hyperenclave)
         IMAGE="antkubetee/kubetee-dev-hyperenclave:1.0-ubuntu20.04-sgx2.15.1"
-        CONTAINERNAME="${NAMEPREFIX}-hyperenclave-ubuntu20.04-$WORKDIR"
         TEE_DEVICES="$DEVICE_HYPERENCLAVE"
         ;;
     *)
-        echo "Unsupported environment type: $ENVTYPE"
+        echo "Unsupported TEE type: $TEETYPE"
         exit 1
         ;;
 esac
+elif [ "$ENVTYPE" == "occlum" ] ; then
+case "$TEETYPE" in
+    sgx1-epid)
+        IMAGE="occlum/occlum:0.19.0-ubuntu18.04"
+        TEE_DEVICES="$DEVICE_SGX1"
+        ;;
+    sgx2-dcap)
+        IMAGE="occlum/occlum:0.29.3-ubuntu20.04"
+        TEE_DEVICES="$DEVICE_SGX2"
+        TEE_VOLUMES="$VOLUME_SGX2"
+        ;;
+    hyperenclave)
+        IMAGE="TBD:incoming"
+        TEE_DEVICES="$DEVICE_HYPERENCLAVE"
+        ;;
+    *)
+        echo "Unsupported tee type for Occlum environment: $TEETYPE"
+        exit 1
+        ;;
+esac
+elif [ "$ENVTYPE" == "ubuntu" ] ; then
+    IMAGE="ubuntu:18.04"
+else
+    echo "Unsupported environment type: $ENVTYPE" ; exit 1
+fi
+
+CONTAINERNAME="aecs-${ENVTYPE}-${TEETYPE}-${WORKDIR}-$(whoami)"
+
 echo "IMAGE: $IMAGE"
 echo "CONTAINERNAME: $CONTAINERNAME"
 

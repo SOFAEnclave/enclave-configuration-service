@@ -52,4 +52,8 @@ add_subdirectory(server/storage_backend_fs)
 # Build the AECS administrator tools
 add_subdirectory(admin)
 # Build the AECS client example
-add_subdirectory(client/cpp)
+if(ENV_TYPE STREQUAL "SGXSDK")
+add_subdirectory(client/cpp_sdk)
+else()
+add_subdirectory(client/cpp_oclcum)
+endif()
