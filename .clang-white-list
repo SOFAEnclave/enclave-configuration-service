@@ -1,3 +1,4 @@
 admin
-client/cpp
+client/cpp_sdk
+client/cpp_occlum/occlum_aecs_client_lib
 server

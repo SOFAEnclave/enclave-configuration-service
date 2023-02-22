@@ -1,6 +1,6 @@
 # AECS
 
-Attestation based Enclave Configuration service
+Attestation based Enclave Configuration Service
 
 
 ## 1 Introduction to KubeTEE AECS

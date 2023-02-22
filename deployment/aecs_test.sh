@@ -37,6 +37,10 @@ stop_aecs_test() {
     sudo docker rm -f $CONTAINERNAME
 }
 
+log_aecs_test() {
+    sudo docker logs $CONTAINERNAME
+}
+
 do_aecs_provison() {
     # Provison
     $THISDIR/run_image.sh ./aecsadmin \
@@ -79,5 +83,6 @@ start_aecs_test() {
 case $1 in
     start) start_aecs_test ;;
     stop)  stop_aecs_test ;;
+    log)   log_aecs_test ;;
     *) echo "Usage: $0 [start|stop]"
 esac

@@ -129,8 +129,6 @@ TeeErrorCode X509Certificate::CreateSslCredentials(
   TEE_CHECK_RETURN(BioToString(pkey_bio, cred->mutable_private_key()));
   TEE_CHECK_RETURN(BioToString(cert_bio, cred->mutable_cert_chain()));
   cred->set_root_cert(cred->cert_chain());
-  ELOG_DEBUG("Created certificate:\n%s", cred->cert_chain().c_str());
-  ELOG_DEBUG("Created private key:\n%s", cred->private_key().c_str());
   return TEE_SUCCESS;
 }
 

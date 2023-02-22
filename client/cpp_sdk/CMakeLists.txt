@@ -24,7 +24,7 @@ GRPC_GENERATE_CPP(
 set(AECS_CLIENT_LDS ${CMAKE_CURRENT_SOURCE_DIR}/enclave/enclave.lds)
 set(AECS_CLIENT_KEY ${CMAKE_CURRENT_SOURCE_DIR}/enclave/enclave_private.pem)
 set(AECS_CLIENT_EDL ${CMAKE_CURRENT_SOURCE_DIR}/enclave/enclave.edl)
-if(SGX_MODE STREQUAL "Release")
+if(BUILD_MODE STREQUAL "Release")
     set(AECS_CLIENT_XML ${CMAKE_SOURCE_DIR}/deployment/sign/enclave.config.${TEE_TYPE}.xml)
 else()
     set(AECS_CLIENT_XML ${CMAKE_CURRENT_SOURCE_DIR}/enclave/enclave.config.xml)
