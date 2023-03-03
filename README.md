@@ -32,7 +32,7 @@ We provide a public docker image for AECS server test only. It's runing in
 simulation mode and also has debug log messages. Try it simply like this:
 
 ```
-./deployment/start.sh start  # stop command to stop it
+./deployment/aecs_test.sh start  # stop command to stop it
 ```
 
 
