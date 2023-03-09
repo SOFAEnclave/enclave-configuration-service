@@ -6,7 +6,7 @@ THISDIR="$(dirname $(readlink -f $0))"
 
 DEPSDIR="$THISDIR/deps"
 
-ALL_COMPONENTS="openssl libcurl cares protobuf grpc"
+ALL_COMPONENTS="libcurl cares protobuf grpc"
 OPENSSLDIR=openssl
 CURLDIR=curl
 PROTOBUFDIR=protobuf
@@ -115,7 +115,7 @@ libcurl_build() {
     fi
     ./configure \
       --prefix=$OCCLUMINSTALLDIR \
-      --with-ssl=$OCCLUMINSTALLDIR \
+      --with-openssl \
       --without-zlib && \
     make -j && make install
 }
@@ -170,7 +170,6 @@ grpc_build() {
     cmake ../.. \
         -DCMAKE_INSTALL_PREFIX=$INSTALLDIR \
         -DgRPC_INSTALL=ON                \
-        -DBUILD_SHARED_LIBS=TRUE         \
         -DgRPC_CARES_PROVIDER=package    \
         -DgRPC_PROTOBUF_PROVIDER=package \
         -DgRPC_SSL_PROVIDER=package      \
@@ -231,7 +230,7 @@ BUILD_COMPONENTS="${1:-$ALL_COMPONENTS}"
 
 # Download all components once here together
 mkdir -p $DEPSDIR && cd $DEPSDIR || exit 1
-TRYGET $OPENSSLDIR https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1k.tar.gz
+# TRYGET $OPENSSLDIR https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1k.tar.gz
 TRYGET $CURLDIR https://github.com/curl/curl/archive/curl-7_70_0.tar.gz
 #TRYGET $PROTOBUFDIR https://github.com/protocolbuffers/protobuf/releases/download/v21.6/protobuf-all-21.6.tar.gz
 #TRYGET $CARESDIR https://c-ares.haxx.se/download/c-ares-1.14.0.tar.gz
