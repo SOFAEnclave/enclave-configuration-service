@@ -36,7 +36,7 @@ add_library(
 target_link_libraries(
   ${AECS_CLIENT_LIB}
   -L/usr/local/occlum/x86_64-linux-gnu/lib
-  -Wl,--start-group ${${UAL_LIBS_LINK}} -lprotobuf -lgrpc++ -lgrpc++_reflection -Wl,--end-group
+  -Wl,--start-group ${${UAL_LIBS_LINK}} -lprotobuf -lcares -laddress_sorting -lgpr -lgrpc -lgrpc++ -lgrpc++_reflection -Wl,--end-group
   -Wl,-rpath=/lib
 )
 add_dependencies(${AECS_CLIENT_LIB} ${UAL_LIBS_NAME})

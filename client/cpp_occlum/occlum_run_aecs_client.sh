@@ -44,6 +44,9 @@ if [ "$ACTIONS" == "all" -o "$ACTIONS" == "build" ] ; then
       --file ${THISDIR}/bom_aecs_client_${OCCLUM_LIBC}.yaml \
       --root ./image
 
+  cp /lib/x86_64-linux-gnu/libcrypt.so.1 image/opt/occlum/glibc/lib/
+  rm image/bin/busybox
+
   new_json="$(jq '.env.default += ["LD_LIBRARY_PATH=/opt/occlum/glibc/lib"]' Occlum.json)" && \
   echo "${new_json}" > Occlum.json
 

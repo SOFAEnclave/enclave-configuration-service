@@ -1,54 +1,26 @@
 # include other bom files
 includes:
   - base.yaml
-# This excludes will only take effect when copy directories. We will exclude files or dirs with following patterns.
-excludes:
-  - .git
-  - .gitignore
 targets:
   - target: /bin
     copy:
       - from: ../build/out
         files:
-          - aecs_client_get_secret
+          - name: aecs_client_get_secret
+            autodep: false
+      # Put here to help detect the valid loader for glibc
+      # Remove it in the script after copy_bom
+      - files:
+        - /opt/occlum/toolchains/busybox/glibc/busybox
   - target: /opt/occlum/glibc/lib/
     copy:
-      - from: ../build/out
-        files:
-          - libaecs_client.so
-          - libual.so
-  - target: /opt/occlum/glibc/lib/
-    copy:
-      - from: /usr/local/occlum/x86_64-linux-gnu/lib
-        files:
-          - libcurl.so.4
-          - libcrypto.so.1.1
-          - libssl.so.1.1
-  - target: /opt/occlum/glibc/lib/
-    copy:
-      - from: /usr/lib
-        files:
-          - libprotobuf.so.32
-          - libgrpc++.so
-          - libgrpc.so
-          - libgpr.so
-          - libcares.so.2
-          - libaddress_sorting.so
-  - target: /opt/occlum/glibc/lib/
-    copy:
-      - from: /usr/lib/x86_64-linux-gnu
-        files:
-          - libz.so.1
-  - target: /opt/occlum/glibc/lib/
-    copy:
-      - from: /opt/occlum/glibc/lib
-        files:
-          - libc.so.6
-          - libpthread.so.0
-          - libdl.so.2
-          - libnss_files.so.2
-          - libnss_dns.so.2
-          - libresolv.so.2
+      - files:
+        - ../build/out/libaecs_client.so
+        - ../build/out/libual.so
+        - /usr/local/occlum/x86_64-linux-gnu/lib/libcurl.so.4
+        - /opt/occlum/glibc/lib/libnss_files.so.2
+        - /opt/occlum/glibc/lib/libnss_dns.so.2
+        - /opt/occlum/glibc/lib/libresolv.so.2
   - target: /etc/kubetee
     copy:
       - from: ../../../third_party/unified_attestation/deployment/conf/
