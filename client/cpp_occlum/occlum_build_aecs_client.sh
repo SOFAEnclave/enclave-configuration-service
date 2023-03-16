@@ -218,7 +218,9 @@ done
 find $THISDIR -wholename "ual/external/protobuf-cpp/src" || \
 EXIT_ERROR "Please try again after 'git submodule update --init --recursive'"
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib:/usr/local/lib:/usr/lib64
+# For using the new version of protoc
+export OCCLUMINSTALLDIR=/opt/occlum/toolchains/gcc/x86_64-linux-gnu
+export PATH=$OCCLUMINSTALLDIR/bin:$PATH
 
 cd $THISDIR
 if [ "$OPT_DO_CLEAN" == 1 ] ; then
