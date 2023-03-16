@@ -87,14 +87,14 @@ GITGET_GRPC() {
 }
 
 openssl_check() {
-    [ -f "$OCCLUMINSTALLDIR/lib/libcrypto.so.1.1" ] || \
-    [ -f "$OCCLUMINSTALLDIR/lib64/libcrypto.so.1.1" ] || \
+    [ -f "$INSTALLDIR/lib/libcrypto.so.1.1" ] || \
+    [ -f "$INSTALLDIR/lib/libcrypto.a" ] || \
     return 1
 }
 
 openssl_build() {
     cd "$DEPSDIR/$OPENSSLDIR" && \
-    ./config --prefix=$OCCLUMINSTALLDIR \
+    ./config --prefix=$INSTALLDIR \
       --openssldir=/usr/local/occlum/ssl \
       --with-rand-seed=rdcpu \
       no-zlib no-async no-tests enable-egd && \
@@ -102,8 +102,8 @@ openssl_build() {
 }
 
 libcurl_check() {
-    [ -f "$OCCLUMINSTALLDIR/lib/libcurl.so" ] || \
-    [ -f "$OCCLUMINSTALLDIR/lib64/libcurl.so" ] || \
+    [ -f "$INSTALLDIR/lib/libcurl.so" ] || \
+    [ -f "$INSTALLDIR/lib/libcurl.a" ] || \
     return 1
 }
 
@@ -114,7 +114,7 @@ libcurl_build() {
       ./buildconf || exit 1
     fi
     ./configure \
-      --prefix=$OCCLUMINSTALLDIR \
+      --prefix=$INSTALLDIR \
       --with-openssl \
       --without-zlib && \
     make -j && make install
@@ -160,18 +160,21 @@ cares_build() {
 }
 
 grpc_check() {
-    [ -f "$INSTALLDIR/lib/libgrpc.so" ] || return 1
+    [ -f "$INSTALLDIR/lib/libgrpc.so" ] || \
+    [ -f "$INSTALLDIR/lib/libgrpc.a" ] || \
+    return 1
 }
 
 grpc_build() {
     echo "======== Building grpc ... ========" && \
     cd $DEPSDIR/$GRPCDIR/cmake && \
     rm -rf build && mkdir -p build && cd build && \
+    export PROTOBUF_DIR=$INSTALLDIR
     cmake ../.. \
         -DCMAKE_INSTALL_PREFIX=$INSTALLDIR \
+        -DgRPC_BUILD_TESTS=OFF           \
         -DgRPC_INSTALL=ON                \
         -DgRPC_CARES_PROVIDER=package    \
-        -DgRPC_PROTOBUF_PROVIDER=package \
         -DgRPC_SSL_PROVIDER=package      \
         -DgRPC_ZLIB_PROVIDER=package     \
         -DCMAKE_CXX_FLAGS="-fPIC -pie"   \
@@ -179,6 +182,8 @@ grpc_build() {
         -DCMAKE_BUILD_TYPE=Release &&    \
     make VERBOSE=1 -j && \
     make install
+    [ -f $INSTALLDIR/lib/libgrpc.a ] || cp ./lib*.a $INSTALLDIR/lib
+    [ -f /usr/bin/grpc_cpp_plugin ] || cp ./grpc_cpp_plugin /usr/bin
 }
 
 # Show help menu
@@ -202,8 +207,7 @@ fi
 
 # Check the occlum libc type and decide the compiler
 PKGCONFIGPATH="/opt/occlum/toolchains/gcc/x86_64-linux-gnu/lib/pkgconfig"
-OCCLUMINSTALLDIR="/usr/local/occlum/x86_64-linux-gnu"
-INSTALLDIR="/usr"
+INSTALLDIR="/opt/occlum/toolchains/gcc/x86_64-linux-gnu"
 OCCLUMCC="gcc -fPIC -pie"
 OCCLUMCXX="g++ -fPIC -pie"
 if [ "$1" == "--libc" ] ; then
@@ -211,10 +215,9 @@ if [ "$1" == "--libc" ] ; then
         echo "Build with musl libc ..."
         INC_DIR_MUSL="/opt/occlum/toolchains/gcc/x86_64-linux-musl/include"
         PKGCONFIGPATH="/opt/occlum/toolchains/gcc/x86_64-linux-musl/lib/pkgconfig"
-        OCCLUMINSTALLDIR="/usr/local/occlum/x86_64-linux-musl"
-        INSTALLDIR="/usr/local/occlum/x86_64-linux-musl"
-        OCCLUMCC="/usr/local/occlum/bin/occlum-gcc -I$INC_DIR_MUSL"
-        OCCLUMCXX="/usr/local/occlum/bin/occlum-g++ -I$INC_DIR_MUSL"
+        INSTALLDIR="/opt/occlum/toolchains/gcc/x86_64-linux-musl"
+        OCCLUMCC="/opt/occlum/toolchains/gcc/bin/occlum-gcc -I$INC_DIR_MUSL"
+        OCCLUMCXX="/opt/occlum/toolchains/gcc/bin/occlum-g++ -I$INC_DIR_MUSL"
     fi
     shift 2
 fi
