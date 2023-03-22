@@ -6,7 +6,7 @@ THISDIR="$(dirname $(readlink -f $0))"
 
 DEPSDIR="$THISDIR/deps"
 
-ALL_COMPONENTS="libcurl cares protobuf grpc"
+ALL_COMPONENTS="libcurl cares grpc"
 OPENSSLDIR=openssl
 CURLDIR=curl
 PROTOBUFDIR=protobuf
@@ -78,9 +78,9 @@ GITGET_GRPC() {
     cd $GRPC_SRC_DIR/third_party/cares/cares
     git submodule update --init .
     git checkout tags/cares-1_15_0
-    cd $GRPC_SRC_DIR/third_party/protobuf
-    git submodule update --init .
-    git checkout tags/v3.21.6
+    # cd $GRPC_SRC_DIR/third_party/protobuf
+    # git submodule update --init .
+    # git checkout tags/v3.21.6
     cd $GRPC_SRC_DIR/third_party/abseil-cpp
     git submodule update --init .
     return 0
@@ -115,9 +115,13 @@ libcurl_build() {
     fi
     ./configure \
       --prefix=$INSTALLDIR \
+      --disable-shared \
       --with-openssl \
       --without-zlib && \
     make -j && make install
+
+    # Remove shared curl lib to force doing staticly link in next step
+    rm -f $INSTALLDIR/lib/libcurl.so*
 }
 
 protobuf_check() {
@@ -152,6 +156,7 @@ cares_build() {
     rm -rf build && mkdir -p build && cd build && \
     cmake ../ \
         -DCMAKE_INSTALL_PREFIX=$INSTALLDIR \
+        -DCARES_STATIC=ON \
         -DCMAKE_CXX_FLAGS="-fPIC -pie"   \
         -DCMAKE_C_FLAGS="-fPIC -pie"     \
 	    -DCMAKE_BUILD_TYPE=Release &&    \
