@@ -7,17 +7,11 @@ targets:
       - from: ../build/out
         files:
           - name: aecs_client_get_secret
-            autodep: false
-      # Put here to help detect the valid loader for glibc
-      # Remove it in the script after copy_bom
-      - files:
-        - /opt/occlum/toolchains/busybox/glibc/busybox
   - target: /opt/occlum/glibc/lib/
     copy:
       - files:
         - ../build/out/libaecs_client.so
         - ../build/out/libual.so
-        - /usr/local/occlum/x86_64-linux-gnu/lib/libcurl.so.4
         - /opt/occlum/glibc/lib/libnss_files.so.2
         - /opt/occlum/glibc/lib/libnss_dns.so.2
         - /opt/occlum/glibc/lib/libresolv.so.2

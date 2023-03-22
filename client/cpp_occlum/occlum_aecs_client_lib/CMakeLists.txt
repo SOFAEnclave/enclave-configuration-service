@@ -36,7 +36,7 @@ add_library(
 target_link_libraries(
   ${AECS_CLIENT_LIB}
   -L/usr/local/occlum/x86_64-linux-gnu/lib
-  -Wl,--start-group ${${UAL_LIBS_LINK}} -lprotobuf -lcares -laddress_sorting -lgpr -lgrpc -lgrpc++ -lgrpc++_reflection -Wl,--end-group
+  -Wl,--start-group ${${UAL_LIBS_LINK}} -lprotobuf -lcares_static -laddress_sorting -lgpr -lgrpc -lgrpc++ -lgrpc++_reflection -Wl,--end-group
   -Wl,-rpath=/lib
 )
 add_dependencies(${AECS_CLIENT_LIB} ${UAL_LIBS_NAME})
@@ -48,7 +48,7 @@ add_executable(${APP} ${APP_SRCS})
 target_link_libraries(
   ${APP}
   -L/usr/local/occlum/x86_64-linux-gnu/lib
-  -Wl,--start-group -l${AECS_CLIENT_LIB} ${UAL_LIBS_LINK} -lgrpc++ -lgrpc++_reflection -Wl,--end-group
+  -Wl,--start-group -l${AECS_CLIENT_LIB} ${UAL_LIBS_LINK} -lz -lgrpc++ -lgrpc++_reflection -Wl,--end-group
   -Wl,-rpath=/lib
 )
 add_dependencies(${APP} ${AECS_CLIENT_LIB} ${UAL_LIBS_NAME})
