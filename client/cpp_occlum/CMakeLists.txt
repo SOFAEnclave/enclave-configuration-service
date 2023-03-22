@@ -41,7 +41,7 @@ link_directories(${LIBRARY_OUTPUT_PATH} ${OCCLUM_INSTALLDIR}/lib)
 include_directories(${UAL_TOP_DIR}/include/sgx)
 
 # How to use UAL
-SET(UAL_LIBS_LINK -lual -lprotobuf -lcurl -lssl -lcrypto)
+SET(UAL_LIBS_LINK -lual -lprotobuf -lcurl_static -lssl -lcrypto)
 SET(UAL_LIBS_NAME ual)
 
 # Only build the required libraries for aecs_client

@@ -78,9 +78,9 @@ GITGET_GRPC() {
     cd $GRPC_SRC_DIR/third_party/cares/cares
     git submodule update --init .
     git checkout tags/cares-1_15_0
-    # cd $GRPC_SRC_DIR/third_party/protobuf
-    # git submodule update --init .
-    # git checkout tags/v3.21.6
+    cd $GRPC_SRC_DIR/third_party/protobuf
+    git submodule update --init .
+    git checkout tags/v3.21.6
     cd $GRPC_SRC_DIR/third_party/abseil-cpp
     git submodule update --init .
     return 0
@@ -115,13 +115,12 @@ libcurl_build() {
     fi
     ./configure \
       --prefix=$INSTALLDIR \
-      --disable-shared \
       --with-openssl \
       --without-zlib && \
     make -j && make install
 
-    # Remove shared curl lib to force doing staticly link in next step
-    rm -f $INSTALLDIR/lib/libcurl.so*
+    # Rename static curl lib to force doing staticly link in next step
+    cp $INSTALLDIR/lib/libcurl.a $INSTALLDIR/lib/libcurl_static.a
 }
 
 protobuf_check() {
