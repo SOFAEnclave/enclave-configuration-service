@@ -133,7 +133,7 @@ prepare_aecs_instance() {
     cp $THISDIR/bin/*.sh $INSTANCEDIR/bin
     mkdir -p $INSTANCEDIR/etc/kubetee
     cp $THISDIR/conf/* $INSTANCEDIR/etc/kubetee/
-    cp $THISDIR/../third_parity/unified_attestation/deployment/conf/* $INSTANCEDIR/etc/kubetee/
+    cp $THISDIR/../third_party/unified_attestation/deployment/conf/* $INSTANCEDIR/etc/kubetee/
     mkdir -p $INSTANCEDIR/etc/certs
     cp ./certs/* $INSTANCEDIR/etc/certs
 }
