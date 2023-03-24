@@ -34,4 +34,4 @@ sudo docker run -t --rm \
     --cap-add=SYS_PTRACE \
     --security-opt seccomp=unconfined \
     $IMAGE \
-    bash -c "./build.sh --mode SIM --build Release $BUILDOPT" || exit 1
+    bash -c "./build.sh --mode SIM --build Debug $BUILDOPT" || exit 1

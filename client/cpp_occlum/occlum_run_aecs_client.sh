@@ -67,16 +67,19 @@ if [ "$ACTIONS" == "all" -o "$ACTIONS" == "run" ] ; then
       localhost:19527 \
       $SERVICE_NAME \
       $SECRET_RSA_NAME \
+      nonce_1 \
       saved_secret_rsa_keypair && \
   OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
       localhost:19527 \
       $SERVICE_NAME \
       $SECRET_AES_NAME \
+      nonce_2 \
       saved_secret_aes_256 && \
   OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
       localhost:19527 \
       $SERVICE_NAME \
       $SECRET_RSA_NAME \
+      nonce_3 \
       saved_secret_rsa_public \
       --public
 fi

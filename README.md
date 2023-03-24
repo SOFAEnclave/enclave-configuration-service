@@ -55,7 +55,7 @@ git submodule update --init --recursive
 #### 2.2.2 Build Project in Docker Environment
 
 ```
-./deployment/dockerbuild.sh [--build Debug]
+./deployment/dockerbuild.sh
 ```
 
 
