@@ -15,11 +15,11 @@ and use the secrets for later use cases.
 
 As far as now, we support the following type of secrets:
 
-- AES-GCM 256 key
+- AES-GCM256 key
 - RSA key pair
 - SM2 key pair
 - Self-signed certificate and key
-- Secret imported by user (Bring your own seret)
+- Secret imported by user (Bring your own secret)
 - Application sensitive configurations as key-value pair
 
 
