@@ -19,6 +19,7 @@ TeeErrorCode aecs_client_get_public_secret_to_file(
     const std::string& aecs_server_policy,
     const std::string& secret_service,
     const std::string& secret_name,
+    const std::string& nonce,
     const std::string& save_file_name);
 
 TeeErrorCode aecs_client_get_public_secret(
@@ -26,6 +27,7 @@ TeeErrorCode aecs_client_get_public_secret(
     const std::string& aecs_server_policy,
     const std::string& secret_service,
     const std::string& secret_name,
+    const std::string& nonce,
     std::string* secret);
 
 #ifdef __cplusplus

@@ -59,6 +59,11 @@ int main(int argc, char** argv) {
   TEE_CHECK_RETURN(AddEnclaveSeriveAuth(enclave, auth));
   req.set_service_name(FLAGS_service);
   req.set_secret_name(FLAGS_secret);
+  // FIXME: use hardcode nonce for test only, and also used trusted code
+  // because we used the retured res as the req for TeeImportSecret,
+  // there is no field to pass the nonce to trusted code
+  // we don't want to add another proto file to do this.
+  req.set_nonce("aecs_client");
   TEE_CHECK_RETURN(aecs_client.GetEnclaveSecret(req, &res));
 
   kubetee::UnifiedFunctionGenericResponse result;

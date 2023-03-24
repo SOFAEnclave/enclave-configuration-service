@@ -5,6 +5,8 @@
 
 #include "unified_attestation/ua_trusted.h"
 
+#include "aecs/error.h"
+
 #include "trusted/trusted_functions.h"
 
 #include "./aecs.pb.h"
@@ -34,24 +36,17 @@ static TeeErrorCode VerifyAecsEnclave(
   return TEE_SUCCESS;
 }
 
-static TeeErrorCode EnvelopeEncryptAndSign(
-    const std::string& encrypt_pubkey,
-    const std::string& plain,
-    kubetee::DigitalEnvelopeEncrypted* env) {
-  // Always sign plain by identity private key
-  TeeInstance& ti = TeeInstance::GetInstance();
-  const kubetee::AsymmetricKeyPair& identity = ti.GetIdentity();
-
-  kubetee::common::DigitalEnvelope envelope;
-  TEE_CHECK_RETURN(envelope.Encrypt(encrypt_pubkey, plain, env));
-  TEE_CHECK_RETURN(envelope.Sign(identity.private_key(), plain, env));
-  return TEE_SUCCESS;
-}
-
 static TeeErrorCode EnvelopeDecryptAndVerify(
     const std::string& verify_pubkey,
     const kubetee::DigitalEnvelopeEncrypted& env,
     std::string* plain) {
+  // If there is nonce, it will be included as envelope AES cipher add
+  const std::string nonce_test = "aecs_client";
+  if (env.aes_cipher().aad() != nonce_test) {
+    TEE_LOG_ERROR("Nonce mismatch when client get secret");
+    return AECS_ERROR_CLIENT_SECRET_NONCE_MISMATCHED;
+  }
+
   // Always decrypt cipher by identity private key
   TeeInstance& ti = TeeInstance::GetInstance();
   std::string prvkey = ti.GetIdentity().private_key();

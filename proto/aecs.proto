@@ -317,6 +317,7 @@ message GetEnclaveSecretRequest {
   UnifiedAttestationAuthReport auth_ra_report = 1;
   string service_name = 2;
   string secret_name = 3;
+  string nonce = 4;
 }
 
 message GetEnclaveSecretResponse {

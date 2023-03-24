@@ -146,10 +146,12 @@ TeeErrorCode VerifySecretPolicy(const UnifiedAttestationAuthReport& auth,
 
 static TeeErrorCode EnvelopeEncryptAndSign(const std::string& encrypt_pubkey,
                                            const std::string& plain,
+                                           const std::string& nonce,
                                            DigitalEnvelopeEncrypted* env) {
   // Always sign plain by identity private key
   std::string prvkey = TeeInstance::GetInstance().GetIdentity().private_key();
-  kubetee::common::DigitalEnvelope envelope;
+  std::string name = nonce.empty() ? kDefaultEnvelopeName : nonce;
+  kubetee::common::DigitalEnvelope envelope(name);
   TEE_CHECK_RETURN(envelope.Encrypt(encrypt_pubkey, plain, env));
   TEE_CHECK_RETURN(envelope.Sign(prvkey, plain, env));
   return TEE_SUCCESS;
@@ -842,8 +844,9 @@ TeeErrorCode TeeAecsAdminRemoteCall(const std::string& req_str,
   if (!fres_str.empty()) {
     // Encrypt by AECS admin public key and sign by identity private key
     DigitalEnvelopeEncrypted* res_enc = res.mutable_res_enc();
-    TEE_CHECK_RETURN(
-        EnvelopeEncryptAndSign(gAecsAdminAuth.public_key(), fres_str, res_enc));
+    std::string empty_nonce;
+    TEE_CHECK_RETURN(EnvelopeEncryptAndSign(gAecsAdminAuth.public_key(),
+                                            fres_str, empty_nonce, res_enc));
   } else {
     ELOG_DEBUG("No response from %s", name.c_str());
   }
@@ -1042,8 +1045,9 @@ TeeErrorCode TeeServiceAdminRemoteCall(const std::string& req_str,
   if (!fres_str.empty()) {
     // Encrypt by AECS admin public key and sign by identity private key
     DigitalEnvelopeEncrypted* res_enc = res.mutable_res_enc();
-    TEE_CHECK_RETURN(
-        EnvelopeEncryptAndSign(service_auth.public_key(), fres_str, res_enc));
+    std::string empty_nonce;
+    TEE_CHECK_RETURN(EnvelopeEncryptAndSign(service_auth.public_key(), fres_str,
+                                            empty_nonce, res_enc));
   } else {
     ELOG_DEBUG("No response from %s", function_name.c_str());
   }
@@ -1087,6 +1091,7 @@ TeeErrorCode TeeGetEnclaveSecret(const std::string& req_str,
 
   // Encrypt the secret by the enclave service public key
   TEE_CHECK_RETURN(EnvelopeEncryptAndSign(auth.pem_public_key(), secret.data(),
+                                          req.nonce(),
                                           res.mutable_secret_enc()));
 
   PB2JSON(res, res_str);
