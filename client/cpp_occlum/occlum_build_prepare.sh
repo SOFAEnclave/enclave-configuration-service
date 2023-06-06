@@ -98,7 +98,7 @@ openssl_build() {
       --openssldir=/usr/local/occlum/ssl \
       --with-rand-seed=rdcpu \
       no-zlib no-async no-tests enable-egd && \
-    make -j && make install
+    make -j$(nproc) && make install
 }
 
 libcurl_check() {
@@ -117,7 +117,7 @@ libcurl_build() {
       --prefix=$INSTALLDIR \
       --with-openssl \
       --without-zlib && \
-    make -j && make install
+    make -j$(nproc) && make install
 
     # Rename static curl lib to force doing staticly link in next step
     cp $INSTALLDIR/lib/libcurl.a $INSTALLDIR/lib/libcurl_static.a
@@ -140,7 +140,7 @@ protobuf_build() {
         -DCMAKE_CXX_FLAGS="-fPIC -pie"   \
         -DCMAKE_C_FLAGS="-fPIC -pie"     \
         -DCMAKE_BUILD_TYPE=Release &&    \
-    make -j && \
+    make -j$(nproc) && \
     make install
     [ -f "$INSTALLDIR/lib/libprotobuf.so.32" ] || cp ./libprotobuf.so.32 $INSTALLDIR/lib/
 }
@@ -159,7 +159,7 @@ cares_build() {
         -DCMAKE_CXX_FLAGS="-fPIC -pie"   \
         -DCMAKE_C_FLAGS="-fPIC -pie"     \
 	    -DCMAKE_BUILD_TYPE=Release &&    \
-    make -j && \
+    make -j$(nproc) && \
     make install
 }
 
@@ -184,7 +184,7 @@ grpc_build() {
         -DCMAKE_CXX_FLAGS="-fPIC -pie"   \
         -DCMAKE_C_FLAGS="-fPIC -pie"     \
         -DCMAKE_BUILD_TYPE=Release &&    \
-    make VERBOSE=1 -j && \
+    make -j$(nproc) && \
     make install
     [ -f $INSTALLDIR/lib/libgrpc.a ] || cp ./lib*.a $INSTALLDIR/lib
     [ -f /usr/bin/grpc_cpp_plugin ] || cp ./grpc_cpp_plugin /usr/bin
