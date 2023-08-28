@@ -27,7 +27,7 @@ if(HAS_TEE STREQUAL "ON")
 endif()
 
 # How to use UAL libraries when ENVTYPE=SGXSDK, using merged ual lib
-set(UAL_U_LIBS_DEPS -lcurl -lprotobuf -lcrypto) 
+set(UAL_U_LIBS_DEPS -lcurl -lprotobuf -lssl -lcrypto)
 if(TEE_TYPE STREQUAL "SGX2")
     list(APPEND UAL_U_LIBS_DEPS -lsgx_dcap_ql -lsgx_quote_ex)
 endif()

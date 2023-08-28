@@ -65,7 +65,7 @@ TeeErrorCode aecs_client_get_secret(const std::string& aecs_server_endpoint,
   kubetee::GetEnclaveSecretResponse res;
   kubetee::UnifiedAttestationAuthReport* auth = req.mutable_auth_ra_report();
   kubetee::attestation::UaReportGenerationParameters param;
-  param.tee_identity = kOcclumDummyTeeIdentity;
+  param.tee_identity = kDummyTeeIdentity;
   param.report_type = kUaReportTypePassport;
   TEE_CHECK_RETURN(UaGenerateAuthReport(&param, auth));
   req.set_service_name(secret_service);

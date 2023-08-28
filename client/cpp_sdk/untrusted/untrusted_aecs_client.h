@@ -7,6 +7,7 @@
 #include <grpcpp/grpcpp.h>
 
 #include "unified_attestation/ua_untrusted.h"
+#include "grpc/untrusted_grpc_client.h"
 
 #include "aecs/untrusted_enclave.h"
 
