@@ -99,7 +99,8 @@ TeeErrorCode EnclaveInstance::Initialize(
   return TEE_SUCCESS;
 }
 
-TeeErrorCode EnclaveInstance::CreateRaReport(bool use_cache) {
+TeeErrorCode EnclaveInstance::CreateRaReport(const std::string& hex_user_data,
+                                             bool use_cache) {
   // Try load cached RA report if required by both runtime and configuration
   std::string ra_report_cache = AECS_CONF_STR(kAecsConfReportCache);
   std::string ra_report_path =
@@ -122,7 +123,11 @@ TeeErrorCode EnclaveInstance::CreateRaReport(bool use_cache) {
 #else
   report_param.report_type = kUaReportTypeBgcheck;
 #endif
-  report_param.report_hex_nonce = hex_nonce.Randomize(32).ToHexStr().GetStr();
+  if (hex_user_data.empty()) {
+    report_param.report_hex_nonce = hex_nonce.Randomize(32).ToHexStr().GetStr();
+  } else {
+    report_param.others.set_hex_user_data(hex_user_data);
+  }
   report_param.others.set_hex_spid(UA_CONF_STR(kUaConfIasSpid));
   TEE_CHECK_RETURN(UaGenerateAuthReport(&report_param, &report_));
   TEE_CHECK_RETURN(UaGetAuthReportAttr(report_, &enclave_info_));
@@ -139,6 +144,11 @@ TeeErrorCode EnclaveInstance::CreateRaReport(bool use_cache) {
     TEE_LOG_INFO("Save local report successfully");
   }
 
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode EnclaveInstance::CreateRaReport(bool use_cache) {
+  TEE_CHECK_RETURN(CreateRaReport("", use_cache));
   return TEE_SUCCESS;
 }
 

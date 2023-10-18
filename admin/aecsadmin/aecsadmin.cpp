@@ -20,6 +20,8 @@ static const char kUsage[] =
     "\tregister      Register a enclave service\n"
     "\tunregister    Unregister a enclave service and remove all\n"
     "\tlist          List all enclave service names\n"
+    "\tlistsecret    List all the trusted application bound secrets\n"
+    "\tdelsecret     Destroy a trustd application bound secret by name\n"
     "\tprovision     Provision AECS, such as OSS authentication information\n"
     "\tsync          Sync secret from another remote AECS runtime instance\n"
     "\tbackup        Backup the identity key into the storage\n"
@@ -31,6 +33,7 @@ static const char kUsage[] =
 DEFINE_string(action, "", "Sub command to be executed");
 DEFINE_string(config, "", "AECS Administrator identity RSA private key");
 DEFINE_string(service, "", "The enclave service name");
+DEFINE_string(secret, "", "The trusted application bound secret name");
 DEFINE_string(servicepasswordhash, "", "The password SHA256 for service");
 DEFINE_string(pubkey, "", "Enclave service owner identity RSA public key");
 DEFINE_string(password, "", "Password for AECS/Service administrator");
@@ -144,6 +147,10 @@ TeeErrorCode DoRegisterEnclaveService(AecsAdminClient* aecs_client) {
   RegisterEnclaveServiceRequest req;
   RegisterEnclaveServiceResponse res;
 
+  CHECK_FLAGS(FLAGS_service, "Empty service name");
+  CHECK_FLAGS(FLAGS_pubkey, "Empty public key file name");
+  CHECK_FLAGS(FLAGS_servicepasswordhash, "Empty service password hash");
+
   // Get enclave service public key from local file
   std::string public_key;
   TEE_CHECK_RETURN(kubetee::utils::FsReadString(FLAGS_pubkey, &public_key));
@@ -159,8 +166,37 @@ TeeErrorCode DoUnregisterEnclaveService(AecsAdminClient* aecs_client) {
   UnregisterEnclaveServiceRequest req;
   UnregisterEnclaveServiceResponse res;
 
+  CHECK_FLAGS(FLAGS_service, "Empty service name");
   req.set_service_name(FLAGS_service);
   TEE_CHECK_RETURN(aecs_client->UnregisterEnclaveService(req, &res));
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode DoListTaSecret(AecsAdminClient* aecs_client) {
+  AecsListTaSecretRequest req;
+  AecsListTaSecretResponse res;
+
+  req.set_secret_name(FLAGS_secret);
+  TEE_CHECK_RETURN(aecs_client->ListTaSecret(req, &res));
+
+  // List the json string of secret spec line by line
+  printf("Total secrets: %d\n", res.secrets_size());
+  for (int i = 0; i < res.secrets_size(); i++) {
+    std::string secret_json_str;
+    PB2JSON(res.secrets()[i], &secret_json_str);
+    printf("[Secret:%d] %s\n", i + 1, secret_json_str.c_str());
+  }
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode DoDestroyTaSecret(AecsAdminClient* aecs_client) {
+  AecsDestroyTaSecretRequest req;
+  AecsDestroyTaSecretResponse res;
+
+  CHECK_FLAGS(FLAGS_secret, "Empty secret name");
+  req.set_secret_name(FLAGS_secret);
+
+  TEE_CHECK_RETURN(aecs_client->DestroyTaSecret(req, &res));
   return TEE_SUCCESS;
 }
 
@@ -204,6 +240,10 @@ int main(int argc, char** argv) {
     TEE_CHECK_RETURN(DoUnregisterEnclaveService(&aecs_client));
   } else if (FLAGS_action == "list") {
     TEE_CHECK_RETURN(DoListEnclaveService(&aecs_client));
+  } else if (FLAGS_action == "listsecret") {
+    TEE_CHECK_RETURN(DoListTaSecret(&aecs_client));
+  } else if (FLAGS_action == "delsecret") {
+    TEE_CHECK_RETURN(DoDestroyTaSecret(&aecs_client));
   } else if (FLAGS_action == "provision") {
     TEE_CHECK_RETURN(DoProvision(&aecs_client));
   } else if (FLAGS_action == "sync") {

@@ -39,7 +39,9 @@ message EnclaveSecretSpec {
   EnclaveSecretType type = 3;
   EnclaveSecretPolicy policy = 4;
   repeated EnclaveKvPair params = 5;
+  // Whether allow to update the spec
   string readonly = 6;
+  // Whether allow to get public key
   string share = 7;
 }
 
@@ -275,6 +277,22 @@ message AecsDeleteBackupIdentityRequest {
 message AecsDeleteBackupIdentityResponse {
 }
 
+message AecsDestroyTaSecretRequest {
+  string secret_name = 1;
+}
+
+message AecsDestroyTaSecretResponse {
+}
+
+message AecsListTaSecretRequest {
+  string secret_name = 1;
+}
+
+message AecsListTaSecretResponse {
+  repeated EnclaveSecretSpec secrets = 1;
+}
+
+
 message AecsProvisionRequest {
   StorageAuth auth = 1;
   // host_name is used for the identity key backup name in storage
@@ -353,3 +371,35 @@ message GetEnclaveSecretPublicResponse {
   string nonce = 4;
 }
 
+message CreateTaSecretRequest {
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  EnclaveSecret secret = 2;
+}
+
+message CreateTaSecretResponse {
+  // RA report of AECS
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+}
+
+message DestroyTaSecretRequest {
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  string secret_name = 3;
+}
+
+message DestroyTaSecretResponse {
+  // RA report of AECS
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+}
+
+message GetTaSecretRequest {
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  // Use default service name now, reserved for later use
+  string service_name = 2;
+  string secret_name = 3;
+  string nonce = 4;
+}
+
+message GetTaSecretResponse {
+  UnifiedAttestationAuthReport auth_ra_report = 1;
+  DigitalEnvelopeEncrypted secret_enc = 2;
+}

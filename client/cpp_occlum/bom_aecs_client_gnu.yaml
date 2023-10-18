@@ -20,3 +20,6 @@ targets:
       - from: ../../../third_party/unified_attestation/deployment/conf/
         files:
           - unified_attestation.json
+      - from: ../../../deployment/conf/
+        files:
+          - service_secret_policy.yaml

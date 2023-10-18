@@ -150,6 +150,18 @@ TeeErrorCode AecsAdminClient::ListEnclaveService(
   return TEE_SUCCESS;
 }
 
+TeeErrorCode AecsAdminClient::ListTaSecret(const AecsListTaSecretRequest& req,
+                                           AecsListTaSecretResponse* res) {
+  TEE_CHECK_RETURN(RemoteCall("ListTaSecret", req, res));
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode AecsAdminClient::DestroyTaSecret(
+    const AecsDestroyTaSecretRequest& req, AecsDestroyTaSecretResponse* res) {
+  TEE_CHECK_RETURN(RemoteCall("DestroyTaSecret", req, res));
+  return TEE_SUCCESS;
+}
+
 TeeErrorCode AecsAdminClient::AecsProvision(const AecsProvisionRequest& req,
                                             AecsProvisionResponse* res) {
   TEE_CHECK_RETURN(RemoteCall("AecsProvision", req, res));
