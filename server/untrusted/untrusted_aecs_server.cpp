@@ -302,30 +302,6 @@ Status AecsServiceImpl::DestroyTaSecret(ServerContext* context,
   return Status::OK;
 }
 
-Status AecsServiceImpl::GetTaSecret(ServerContext* context,
-                                    const GetTaSecretRequest* req,
-                                    GetTaSecretResponse* res) {
-  GRPC_INTERFACE_ENTER_DEBUG();
-
-  // Check the secret name
-  if (req->secret_name().empty()) {
-    RETURN_ERROR(AECS_ERROR_SECRET_GET_EMPTY_SECRET_NAME,
-                 "Secret name should not be empty");
-  }
-
-  // Get the encrypted enclave secret
-  TeeErrorCode ret = enclave_->TeeRun("TeeGetTaSecret", *req, res);
-  RETURN_ERROR(ret, "Fail to get trusted application bound secret");
-
-  // Prepare response with server's RA report and public key
-  UnifiedAttestationAuthReport* server_ra_auth = res->mutable_auth_ra_report();
-  ret = GetServerRaAuthentication(server_ra_auth);
-  RETURN_ERROR(ret, "Fail to load server RA report");
-
-  GRPC_INTERFACE_EXIT_DEBUG();
-  return Status::OK;
-}
-
 TeeErrorCode AecsServiceImpl::InitializeServerImpl(EnclaveInstance* enclave) {
   enclave_ = enclave;
 

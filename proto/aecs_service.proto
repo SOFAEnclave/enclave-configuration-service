@@ -77,7 +77,4 @@ service Aecs {
   rpc DestroyTaSecret(DestroyTaSecretRequest)
     returns (DestroyTaSecretResponse) {
   }
-  rpc GetTaSecret(GetTaSecretRequest)
-    returns (GetTaSecretResponse) {
-  }
 }

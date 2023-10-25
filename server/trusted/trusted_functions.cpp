@@ -1362,47 +1362,6 @@ TeeErrorCode TeeDestroyTaSecret(const std::string& req_str,
   return TEE_SUCCESS;
 }
 
-TeeErrorCode TeeGetTaSecret(const std::string& req_str, std::string* res_str) {
-  // check aecs_server running status
-  TEE_CHECK_RETURN(checkAecsStatusWorking());
-
-  kubetee::GetTaSecretRequest req;
-  kubetee::GetTaSecretResponse res;
-  JSON2PB(req_str, &req);
-
-  // Get the enclave secret keys by service and secret name
-  std::string secret_str;
-  std::string service_name = kTaServiceName;
-  std::string name = GetSecretPrefix(service_name) + req.secret_name();
-  StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
-  TEE_CHECK_RETURN(storage.GetValue(name, &secret_str));
-  ELOG_INFO("Get ta secret: %s/%s", req.secret_name().c_str());
-
-  // Check the service and secret name in secret
-  kubetee::EnclaveSecret secret;
-  PB_PARSE(secret, secret_str);
-  if (service_name != secret.spec().service_name()) {
-    ELOG_ERROR("Service name does not match what in the secret spec");
-    return AECS_ERROR_SECRET_GET_MISMATCH_SERVICE_NAME;
-  }
-  if (req.secret_name() != secret.spec().secret_name()) {
-    ELOG_ERROR("Secret name does not match what in the secret spec");
-    return AECS_ERROR_SECRET_GET_MISMATCH_SECRET_NAME;
-  }
-
-  // Verify the enclave service RA report by the secret policy
-  const kubetee::UnifiedAttestationAuthReport& auth = req.auth_ra_report();
-  TEE_CHECK_RETURN(VerifySecretPolicy(auth, secret.spec().policy()));
-
-  // Encrypt the secret by the enclave service public key
-  TEE_CHECK_RETURN(EnvelopeEncryptAndSign(auth.pem_public_key(), secret.data(),
-                                          req.nonce(),
-                                          res.mutable_secret_enc()));
-
-  PB2JSON(res, res_str);
-  return TEE_SUCCESS;
-}
-
 TeeErrorCode TeeInitializeAecsAdmin(const std::string& req_str,
                                     std::string* res_str) {
   kubetee::AecsAdminInitializeRequest req;
@@ -1468,7 +1427,6 @@ TeeErrorCode RegisterTrustedUnifiedFunctionsEx() {
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeGetEnclaveSecretPublic);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeCreateTaSecret);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeDestroyTaSecret);
-  ADD_TRUSTED_UNIFIED_FUNCTION(TeeGetTaSecret);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeInitializeAecsAdmin);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeInitializeAecsEnclave);
   return TEE_SUCCESS;

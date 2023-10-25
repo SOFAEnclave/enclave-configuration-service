@@ -21,15 +21,13 @@ static const char kVersion[] = "v1";
 static const char kUsage[] =
     "aecs_client_test_service --action <sub-command> [option-flags ...]\n"
     "\nSub Commands:\n"
-    "\ttacreate      Creates trusted application bound secrets by yaml conf\n"
-    "\ttadestroy     Destroy a trusted application bound secret by name\n"
-    "\ttaget         Get secret created by trusted application\n"
-    "\tget           Get secret created by serivceadmin or trusted "
-    "application\n";
+    "\tcreate      Creates trusted application bound secrets by yaml conf\n"
+    "\tdestroy     Destroy a trusted application bound secret by name\n"
+    "\tget         Get secret created by serivceadmin or TA\n";
 
 // Define the command line options
 DEFINE_string(action, "", "action name [create/destroy/get]");
-DEFINE_string(service, "", "service name");
+DEFINE_string(service, kTaServiceName, "service name");
 DEFINE_string(secret, "", "secret name");
 DEFINE_string(policy, "", "Yaml policy file for creating secrets");
 DEFINE_string(enclave, "", "Special the path of enclave so file");
@@ -120,27 +118,6 @@ TeeErrorCode DoGetEnclaveSecret(AecsClient* aecs_client,
   return TEE_SUCCESS;
 }
 
-TeeErrorCode DoGetTaSecret(AecsClient* aecs_client, EnclaveInstance* enclave) {
-  kubetee::GetTaSecretRequest req;
-  kubetee::GetTaSecretResponse res;
-
-  // Check flags
-  CHECK_FLAGS(FLAGS_secret, "Empty secret name");
-
-  TEE_CHECK_RETURN(AddEnclaveSeriveAuth(enclave, req.mutable_auth_ra_report()));
-  req.set_secret_name(FLAGS_secret);
-  // FIXME: use hardcode nonce for test only, and also used trusted code
-  // because we used the retured res as the req for TeeImportSecret,
-  // there is no field to pass the nonce to trusted code
-  // we don't want to add another proto file to do this.
-  req.set_nonce("aecs_client");
-  TEE_CHECK_RETURN(aecs_client->GetTaSecret(req, &res));
-
-  kubetee::UnifiedFunctionGenericResponse result;
-  TEE_CHECK_RETURN(enclave->TeeRun("TeeImportSecret", res, &result));
-
-  return TEE_SUCCESS;
-}
 // Main start
 int main(int argc, char** argv) {
   // Initialize the gflags
@@ -166,12 +143,10 @@ int main(int argc, char** argv) {
 
   // Do real things for the specified sub command
   aecs::untrusted::AecsClient aecs_client;
-  if (FLAGS_action == "tacreate") {
+  if (FLAGS_action == "create") {
     TEE_CHECK_RETURN(DoCreateTaSecret(&aecs_client, enclave));
-  } else if (FLAGS_action == "tadestroy") {
+  } else if (FLAGS_action == "destroy") {
     TEE_CHECK_RETURN(DoDestroyTaSecret(&aecs_client, enclave));
-  } else if (FLAGS_action == "taget") {
-    TEE_CHECK_RETURN(DoGetTaSecret(&aecs_client, enclave));
   } else if (FLAGS_action == "get") {
     TEE_CHECK_RETURN(DoGetEnclaveSecret(&aecs_client, enclave));
   } else {

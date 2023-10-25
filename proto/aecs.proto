@@ -390,16 +390,3 @@ message DestroyTaSecretResponse {
   // RA report of AECS
   UnifiedAttestationAuthReport auth_ra_report = 1;
 }
-
-message GetTaSecretRequest {
-  UnifiedAttestationAuthReport auth_ra_report = 1;
-  // Use default service name now, reserved for later use
-  string service_name = 2;
-  string secret_name = 3;
-  string nonce = 4;
-}
-
-message GetTaSecretResponse {
-  UnifiedAttestationAuthReport auth_ra_report = 1;
-  DigitalEnvelopeEncrypted secret_enc = 2;
-}

@@ -36,8 +36,6 @@ using kubetee::GetEnclaveSecretRequest;
 using kubetee::GetEnclaveSecretResponse;
 using kubetee::GetRemoteSecretRequest;
 using kubetee::GetRemoteSecretResponse;
-using kubetee::GetTaSecretRequest;
-using kubetee::GetTaSecretResponse;
 using kubetee::SyncWithRemoteAecsRequest;
 using kubetee::SyncWithRemoteAecsResponse;
 
@@ -100,10 +98,6 @@ class AecsServiceImpl final : public kubetee::Aecs::Service {
   Status DestroyTaSecret(ServerContext* context,
                          const DestroyTaSecretRequest* req,
                          DestroyTaSecretResponse* res);
-  // For getting trusted application bound secret
-  Status GetTaSecret(ServerContext* context,
-                     const GetTaSecretRequest* req,
-                     GetTaSecretResponse* res);
 
   TeeErrorCode InitializeServerImpl(EnclaveInstance* enclave);
   TeeErrorCode CheckRaAuthentication(const UnifiedAttestationAuthReport& auth);

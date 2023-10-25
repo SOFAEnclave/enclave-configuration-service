@@ -26,8 +26,6 @@ using kubetee::DestroyTaSecretRequest;
 using kubetee::DestroyTaSecretResponse;
 using kubetee::GetEnclaveSecretRequest;
 using kubetee::GetEnclaveSecretResponse;
-using kubetee::GetTaSecretRequest;
-using kubetee::GetTaSecretResponse;
 using kubetee::IasReport;
 using kubetee::UnifiedAttestationAuthReport;
 
@@ -55,9 +53,6 @@ class AecsClient : public kubetee::untrusted::TeeGrpcClient {
 
   TeeErrorCode DestroyTaSecret(const DestroyTaSecretRequest& request,
                                DestroyTaSecretResponse* response);
-
-  TeeErrorCode GetTaSecret(const GetTaSecretRequest& request,
-                           GetTaSecretResponse* response);
 
  private:
   std::unique_ptr<Aecs::Stub> stub_;

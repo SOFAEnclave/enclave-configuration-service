@@ -86,17 +86,5 @@ TeeErrorCode AecsClient::DestroyTaSecret(const DestroyTaSecretRequest& request,
   return CheckStatusCode(status);
 }
 
-TeeErrorCode AecsClient::GetTaSecret(const GetTaSecretRequest& request,
-                                     GetTaSecretResponse* response) {
-  Status status;
-  ClientContext context;
-
-  context.set_deadline(std::chrono::system_clock::now() +
-                       std::chrono::milliseconds(kTimeoutMs));
-
-  status = stub_->GetTaSecret(&context, request, response);
-  return CheckStatusCode(status);
-}
-
 }  // namespace untrusted
 }  // namespace aecs

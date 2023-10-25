@@ -149,7 +149,8 @@ TeeErrorCode DoRegisterEnclaveService(AecsAdminClient* aecs_client) {
 
   CHECK_FLAGS(FLAGS_service, "Empty service name");
   CHECK_FLAGS(FLAGS_pubkey, "Empty public key file name");
-  CHECK_FLAGS(FLAGS_servicepasswordhash, "Empty service password hash");
+  // Allow empty seviceadmin password
+  // CHECK_FLAGS(FLAGS_servicepasswordhash, "Empty service password hash");
 
   // Get enclave service public key from local file
   std::string public_key;
