@@ -83,6 +83,6 @@ target_link_libraries(
     -lprotobuf
     gRPC::grpc++_reflection
     -Wl,--start-group -laecs_uprotobuf -lua_ugrpc ${UAL_LIBS_LINK} -Wl,--end-group
-    -Wl,-rpath=.:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64:${SGX_LIBRARY_DIR}
+    -Wl,-rpath=.:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64:/usr/lib/x86_64-linux-gnu:${SGX_LIBRARY_DIR}
 )
 add_dependencies(${AECSAPP} aecs_uprotobuf ua_ugrpc ${UAL_LIBS_NAME})

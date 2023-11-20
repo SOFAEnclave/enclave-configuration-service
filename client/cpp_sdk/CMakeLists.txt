@@ -5,6 +5,7 @@ set(AECS_PROTO_FILES
     ${UAL_TOP_DIR}/proto/attestation.proto
     ${UAL_TOP_DIR}/proto/crypto.proto
     ${AECS_TOP_DIR}/proto/aecs.proto
+    ${AECS_TOP_DIR}/proto/aecs_admin.proto
     ${AECS_TOP_DIR}/proto/aecs_service.proto
 )
 PROTOBUF_GENERATE_CPP(
@@ -71,9 +72,11 @@ enclave_sign(
 # Generate the untrusted targets
 file(GLOB AECS_CLIENT_COMMON_UNTRUSTED_SRCS ${AECS_TOP_DIR}/common/untrusted/*.cpp)
 file(GLOB AECS_CLIENT_UNTRUSTED_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/untrusted/*.cpp)
+set(AECS_SECRET_POLICY_PARSER ${AECS_TOP_DIR}/admin/serviceadmin/serviceadmin_secret_policy.cpp)
 set(AECS_CLIENT_USRCS
     ${AECS_CLIENT_COMMON_UNTRUSTED_SRCS}
     ${AECS_CLIENT_UNTRUSTED_SRCS}
+    ${AECS_SECRET_POLICY_PARSER}
     ${AECS_PROTO_SRCS}
     ${AECS_GRPC_SRCS}
 )
@@ -84,6 +87,8 @@ include_directories(
     ${CMAKE_BINARY_DIR}
     ${AECS_BINARY_DIR}/third_party/gflags/include
     ${AECS_TOP_DIR}/include
+    ${AECS_TOP_DIR}/admin
+    ${AECS_TOP_DIR}/third_party/yaml-cpp/include
     ${UAL_TOP_DIR}/include
 )
 set(AECS_CLIENT_APP aecs_client_test_service)
@@ -96,8 +101,8 @@ add_untrusted_executable(
 target_link_libraries(
     ${AECS_CLIENT_APP}
     -lprotobuf -lgflags_nothreads
-    gRPC::grpc++_reflection
+    gRPC::grpc++_reflection yaml-cpp
     -Wl,--start-group -lua_ugrpc ${UAL_LIBS_LINK} -Wl,--end-group
-    -Wl,-rpath=.:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64:${SGX_LIBRARY_DIR}
+    -Wl,-rpath=.:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64:/usr/lib/x86_64-linux-gnu:${SGX_LIBRARY_DIR}
 )
-add_dependencies(${AECS_CLIENT_APP} ua_ugrpc ${UAL_LIBS_NAME})
+add_dependencies(${AECS_CLIENT_APP} gflags yaml-cpp ua_ugrpc ${UAL_LIBS_NAME})

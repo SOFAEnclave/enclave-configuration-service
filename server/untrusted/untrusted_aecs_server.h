@@ -24,6 +24,10 @@ using kubetee::UnifiedAttestationNestedPolicy;
 
 using kubetee::AdminRemoteCallRequest;
 using kubetee::AdminRemoteCallResponse;
+using kubetee::CreateTaSecretRequest;
+using kubetee::CreateTaSecretResponse;
+using kubetee::DestroyTaSecretRequest;
+using kubetee::DestroyTaSecretResponse;
 using kubetee::GetAecsStatusRequest;
 using kubetee::GetAecsStatusResponse;
 using kubetee::GetEnclaveSecretPublicRequest;
@@ -84,6 +88,16 @@ class AecsServiceImpl final : public kubetee::Aecs::Service {
   Status GetEnclaveSecretPublic(ServerContext* context,
                                 const GetEnclaveSecretPublicRequest* req,
                                 GetEnclaveSecretPublicResponse* res);
+
+  // For creating trusted application bound secret
+  Status CreateTaSecret(ServerContext* context,
+                        const CreateTaSecretRequest* req,
+                        CreateTaSecretResponse* res);
+
+  // For deleting trusted application bound secret
+  Status DestroyTaSecret(ServerContext* context,
+                         const DestroyTaSecretRequest* req,
+                         DestroyTaSecretResponse* res);
 
   TeeErrorCode InitializeServerImpl(EnclaveInstance* enclave);
   TeeErrorCode CheckRaAuthentication(const UnifiedAttestationAuthReport& auth);

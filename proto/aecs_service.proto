@@ -67,4 +67,14 @@ service Aecs {
   rpc GetEnclaveSecretPublic(GetEnclaveSecretPublicRequest)
     returns (GetEnclaveSecretPublicResponse) {
   }
+
+  // Create and destroy the trusted application bound secret
+  // Create the secret with policy from which TA is creating it
+  // Destroy the secret only by the TA who created it
+  rpc CreateTaSecret(CreateTaSecretRequest)
+    returns (CreateTaSecretResponse) {
+  }
+  rpc DestroyTaSecret(DestroyTaSecretRequest)
+    returns (DestroyTaSecretResponse) {
+  }
 }

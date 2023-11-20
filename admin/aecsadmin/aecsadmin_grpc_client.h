@@ -40,6 +40,11 @@ using kubetee::AecsDeleteBackupIdentityResponse;
 using kubetee::AecsListBackupIdentityRequest;
 using kubetee::AecsListBackupIdentityResponse;
 
+using kubetee::AecsDestroyTaSecretRequest;
+using kubetee::AecsDestroyTaSecretResponse;
+using kubetee::AecsListTaSecretRequest;
+using kubetee::AecsListTaSecretResponse;
+
 using kubetee::AecsProvisionRequest;
 using kubetee::AecsProvisionResponse;
 using kubetee::ListEnclaveServiceRequest;
@@ -76,9 +81,15 @@ class AecsAdminClient : public kubetee::untrusted::TeeGrpcClient {
   TeeErrorCode UnregisterEnclaveService(
       const UnregisterEnclaveServiceRequest& req,
       UnregisterEnclaveServiceResponse* res);
-  // Listed all the registered services
+  // List all the registered services
   TeeErrorCode ListEnclaveService(const ListEnclaveServiceRequest& req,
                                   ListEnclaveServiceResponse* res);
+  // List all trusted application bound secrets or special one by name
+  TeeErrorCode ListTaSecret(const AecsListTaSecretRequest& req,
+                            AecsListTaSecretResponse* res);
+  // Destroy the trusted application bound secret by name
+  TeeErrorCode DestroyTaSecret(const AecsDestroyTaSecretRequest& req,
+                               AecsDestroyTaSecretResponse* res);
   // Provision the AECS administrator public key,
   // optional storage authentication, and so on.
   // All these secrets should be set only once.

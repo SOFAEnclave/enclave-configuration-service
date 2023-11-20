@@ -28,6 +28,7 @@ using kubetee::AecsAdminInitializeResponse;
 using kubetee::DigitalEnvelopeEncrypted;
 using kubetee::EnclaveSecret;
 using kubetee::EnclaveSecretPolicy;
+using kubetee::UnifiedAttestationAttributes;
 using kubetee::UnifiedAttestationAuthReport;
 
 typedef TeeErrorCode (*AecsAdminRemoteFunction)(const std::string& req_str,
@@ -75,8 +76,12 @@ static const char kStoragePrefixIdentity[] = "aecsIdentity/";
 static const char kAecsStatusNewPending[] = "Pending";
 static const char kAecsStatusWorking[] = "Working";
 
+// All secert created by trusted applications use this service name
+static const char kTaServiceName[] = "TrustedApplications";
+
 static constexpr size_t kMaxServicesNum = 256;
 static constexpr size_t kMaxSecretsNum = 32;
+static constexpr size_t kMaxTaSecretsNum = 4096;
 static constexpr size_t kMaxSecretLength = 10240;
 
 static constexpr unsigned int kCertDefaultBitLength = 2048;
@@ -225,6 +230,11 @@ static TeeErrorCode CheckNameValidity(const std::string& name) {
     }
     ELOG_ERROR("Invalid name with special characters: '%s'", name.c_str());
     return AECS_ERROR_PARAMETER_NAME_INVALID_CHAR;
+  }
+  // Execlude special reserved names
+  if (name == kTaServiceName) {
+    ELOG_ERROR("In conflict with reserved names: '%s'", name.c_str());
+    return AECS_ERROR_PARAMETER_NAME_RESERVED;
   }
   return TEE_SUCCESS;
 }
@@ -803,6 +813,64 @@ TeeErrorCode AecsDeleteBackupIdentity(const std::string& req_str,
   return TEE_SUCCESS;
 }
 
+TeeErrorCode AecsAdminListTaSecrets(const std::string& req_str,
+                                    std::string* res_str,
+                                    std::string* out_str) {
+  kubetee::AecsListTaSecretRequest req;
+  kubetee::AecsListTaSecretResponse res;
+  JSON2PB(req_str, &req);
+
+  // If service_name is not specified, list all secrets
+  std::string secrets_dir = GetSecretPrefix(kTaServiceName);
+  std::string list_prefix = secrets_dir;
+  if (!req.secret_name().empty()) {
+    // The secret_name maybe a pattern including begining characters
+    list_prefix.append(req.secret_name());
+  }
+
+  // Get the names firstly and get secret with data one by one
+  // Only return the policies list, but not the real secret data
+  kubetee::StorageListAllResponse storage_res;
+  StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
+  ELOG_INFO("AecsAdminListTaSecrets: %s", list_prefix.c_str());
+  TEE_CHECK_RETURN(storage.ListAll(list_prefix, &storage_res));
+  // ListAll will return filename only whther the prefix is dir or filename
+  for (int i = 0; i < storage_res.names_size(); i++) {
+    std::string value;
+    storage.GetValue(secrets_dir + storage_res.names()[i], &value);
+    kubetee::EnclaveSecret secret;
+    PB_PARSE(secret, value);
+    res.add_secrets()->CopyFrom(secret.spec());
+  }
+
+  PB2JSON(res, res_str);
+  out_str->clear();
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode AecsAdminDestroyTaSecrets(const std::string& req_str,
+                                       std::string* res_str,
+                                       std::string* out_str) {
+  kubetee::AecsDestroyTaSecretRequest req;
+  kubetee::AecsDestroyTaSecretResponse res;
+  JSON2PB(req_str, &req);
+
+  if (req.secret_name().empty()) {
+    ELOG_ERROR("There is no secret name");
+    return AECS_ERROR_SECRET_DESTROY_EMPTY_NAME;
+  }
+
+  // Delete the secret object by secret name
+  std::string full_name = GetSecretPrefix(kTaServiceName) + req.secret_name();
+  StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
+  ELOG_INFO("ServiceDestroySecret: %s", full_name.c_str());
+  TEE_CHECK_RETURN(storage.Delete(full_name));
+
+  PB2JSON(res, res_str);
+  out_str->clear();
+  return TEE_SUCCESS;
+}
+
 TeeErrorCode TeeAecsAdminRemoteCall(const std::string& req_str,
                                     std::string* res_str) {
   static std::map<std::string, AecsAdminRemoteFunction> functions = {
@@ -812,7 +880,9 @@ TeeErrorCode TeeAecsAdminRemoteCall(const std::string& req_str,
       {"AecsProvision", AecsProvision},
       {"AecsBackupIdentity", AecsBackupIdentity},
       {"AecsListBackupIdentity", AecsListBackupIdentity},
-      {"AecsDeleteBackupIdentity", AecsDeleteBackupIdentity}};
+      {"AecsDeleteBackupIdentity", AecsDeleteBackupIdentity},
+      {"ListTaSecret", AecsAdminListTaSecrets},
+      {"DestroyTaSecret", AecsAdminDestroyTaSecrets}};
   kubetee::AdminRemoteCallRequest req;
   kubetee::AdminRemoteCallResponse res;
   JSON2PB(req_str, &req);
@@ -923,7 +993,7 @@ TeeErrorCode ServiceAdminCreateSecret(const std::string& service_name,
     kubetee::StorageListAllResponse list_res;
     TEE_CHECK_RETURN(storage.ListAll(list_prefix, &list_res));
     ELOG_INFO("Current number of secrets: %ld", list_res.names_size());
-    if (list_res.names_size() >= kMaxSecretsNum) {
+    if (list_res.names_size() > kMaxSecretsNum) {
       ELOG_ERROR("Achieve to the max number of secrets");
       return AECS_ERROR_SECRET_CREATE_ACHIEVE_MAX;
     }
@@ -954,7 +1024,7 @@ TeeErrorCode ServiceAdminDestroySecret(const std::string& service_name,
     return AECS_ERROR_SECRET_DESTROY_EMPTY_NAME;
   }
 
-  // Delete all the secret objects by secret name
+  // Delete the secret object by secret name
   std::string full_name = GetSecretPrefix(service_name) + req.secret_name();
   StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
   ELOG_INFO("ServiceDestroySecret: %s", full_name.c_str());
@@ -1085,7 +1155,7 @@ TeeErrorCode TeeGetEnclaveSecret(const std::string& req_str,
     return AECS_ERROR_SECRET_GET_MISMATCH_SECRET_NAME;
   }
 
-  // Verify the enclave service IAS report by the secret policy
+  // Verify the enclave service RA report by the secret policy
   const kubetee::UnifiedAttestationAuthReport& auth = req.auth_ra_report();
   TEE_CHECK_RETURN(VerifySecretPolicy(auth, secret.spec().policy()));
 
@@ -1186,6 +1256,113 @@ TeeErrorCode TeeGetEnclaveSecretPublic(const std::string& req_str,
   return TEE_SUCCESS;
 }
 
+TeeErrorCode TeeCreateTaSecret(const std::string& req_str,
+                               std::string* res_str) {
+  // check aecs_server running status
+  TEE_CHECK_RETURN(checkAecsStatusWorking());
+
+  kubetee::CreateTaSecretRequest req;
+  kubetee::CreateTaSecretResponse res;
+  JSON2PB(req_str, &req);
+
+  // Validate the secret name
+  kubetee::EnclaveSecretSpec* secret_spec =
+      req.mutable_secret()->mutable_spec();
+  const std::string& secret_name = secret_spec->secret_name();
+  TEE_CHECK_RETURN(CheckNameValidity(secret_name));
+
+  // Complete and adjust the spec to be saved
+  // Trusted application bound sceret all use a default service name
+  const std::string service_name = kTaServiceName;
+  secret_spec->set_service_name(service_name);
+  secret_spec->set_readonly("true");
+  secret_spec->set_share("false");
+
+  // Verify the trusted application RA report by the secret policy
+  kubetee::UnifiedAttestationPolicy* secret_policy =
+      secret_spec->mutable_policy()->mutable_policy();
+  const kubetee::UnifiedAttestationAuthReport& auth = req.auth_ra_report();
+  UnifiedAttestationAttributes* attr = secret_policy->add_main_attributes();
+  attr->Clear();
+  TEE_CHECK_RETURN(UaGetAuthReportAttr(auth, attr));
+  // Don't check public key and user data
+  secret_policy->clear_pem_public_key();
+  attr->clear_hex_hash_or_pem_pubkey();
+
+  // Check whether achieve to the max number of secrets
+  StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
+  std::string list_prefix = GetSecretPrefix(service_name);
+  kubetee::StorageListAllResponse list_res;
+  TEE_CHECK_RETURN(storage.ListAll(list_prefix, &list_res));
+  ELOG_INFO("Current number of secrets: %ld", list_res.names_size());
+  if (list_res.names_size() > kMaxTaSecretsNum) {
+    ELOG_ERROR("Achieve to the max number of TA secrets");
+    return AECS_ERROR_SECRET_CREATE_ACHIEVE_MAX;
+  }
+
+  // Generate secret data according to the secret type
+  TEE_CHECK_RETURN(SecretPrepareData(req.mutable_secret()));
+
+  // Write the secret to storage
+  std::string secret_str;
+  PB_SERIALIZE(req.secret(), &secret_str);
+  std::string full_name = GetSecretPrefix(service_name) + secret_name;
+  ELOG_INFO("TaCreateSecret: %s", full_name.c_str());
+  TEE_CHECK_RETURN(storage.Create(full_name, secret_str));
+
+  PB2JSON(res, res_str);
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode TeeDestroyTaSecret(const std::string& req_str,
+                                std::string* res_str) {
+  // check aecs_server running status
+  TEE_CHECK_RETURN(checkAecsStatusWorking());
+
+  kubetee::DestroyTaSecretRequest req;
+  kubetee::DestroyTaSecretResponse res;
+  JSON2PB(req_str, &req);
+
+  // Check the parameters in request
+  if (req.secret_name().empty()) {
+    ELOG_ERROR("There is no secret name");
+    return AECS_ERROR_SECRET_DESTROY_EMPTY_NAME;
+  }
+
+  // Read the secret and check the policy in spec
+  const std::string& service_name = kTaServiceName;
+  std::string secret_str;
+  std::string full_name = GetSecretPrefix(service_name) + req.secret_name();
+  StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();
+  TEE_CHECK_RETURN(storage.GetValue(full_name, &secret_str));
+  ELOG_INFO("Get enclave secret: %s/%s", service_name.c_str(),
+            req.secret_name().c_str());
+
+  // Check the service and secret name in secret
+  kubetee::EnclaveSecret secret;
+  PB_PARSE(secret, secret_str);
+  if (service_name != secret.spec().service_name()) {
+    ELOG_ERROR("Service name does not match what in the secret spec");
+    return AECS_ERROR_SECRET_GET_MISMATCH_SERVICE_NAME;
+  }
+  if (req.secret_name() != secret.spec().secret_name()) {
+    ELOG_ERROR("Secret name does not match what in the secret spec");
+    return AECS_ERROR_SECRET_GET_MISMATCH_SECRET_NAME;
+  }
+
+  // Verify the trusted application RA report by the secret policy
+  // Only allow the trusted application which created this secret to delete it
+  const kubetee::UnifiedAttestationAuthReport& auth = req.auth_ra_report();
+  TEE_CHECK_RETURN(VerifySecretPolicy(auth, secret.spec().policy()));
+
+  // Delete all the secret objects by secret name
+  ELOG_INFO("TaDestroySecret: %s", full_name.c_str());
+  TEE_CHECK_RETURN(storage.Delete(full_name));
+
+  PB2JSON(res, res_str);
+  return TEE_SUCCESS;
+}
+
 TeeErrorCode TeeInitializeAecsAdmin(const std::string& req_str,
                                     std::string* res_str) {
   kubetee::AecsAdminInitializeRequest req;
@@ -1249,6 +1426,8 @@ TeeErrorCode RegisterTrustedUnifiedFunctionsEx() {
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeServiceAdminRemoteCall);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeGetEnclaveSecret);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeGetEnclaveSecretPublic);
+  ADD_TRUSTED_UNIFIED_FUNCTION(TeeCreateTaSecret);
+  ADD_TRUSTED_UNIFIED_FUNCTION(TeeDestroyTaSecret);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeInitializeAecsAdmin);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeInitializeAecsEnclave);
   return TEE_SUCCESS;

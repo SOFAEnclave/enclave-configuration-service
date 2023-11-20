@@ -8,6 +8,9 @@
 
 #include "grpcpp/grpcpp.h"
 
+// All secert created by trusted applications use this service name
+const char kTaServiceName[] = "TrustedApplications";
+
 namespace aecs {
 namespace untrusted {
 
@@ -56,6 +59,30 @@ TeeErrorCode AecsClient::GetEnclaveSecretPublic(
                        std::chrono::milliseconds(kTimeoutMs));
 
   status = stub_->GetEnclaveSecretPublic(&context, request, response);
+  return CheckStatusCode(status);
+}
+
+TeeErrorCode AecsClient::CreateTaSecret(const CreateTaSecretRequest& request,
+                                        CreateTaSecretResponse* response) {
+  Status status;
+  ClientContext context;
+
+  context.set_deadline(std::chrono::system_clock::now() +
+                       std::chrono::milliseconds(kTimeoutMs));
+
+  status = stub_->CreateTaSecret(&context, request, response);
+  return CheckStatusCode(status);
+}
+
+TeeErrorCode AecsClient::DestroyTaSecret(const DestroyTaSecretRequest& request,
+                                         DestroyTaSecretResponse* response) {
+  Status status;
+  ClientContext context;
+
+  context.set_deadline(std::chrono::system_clock::now() +
+                       std::chrono::milliseconds(kTimeoutMs));
+
+  status = stub_->DestroyTaSecret(&context, request, response);
   return CheckStatusCode(status);
 }
 

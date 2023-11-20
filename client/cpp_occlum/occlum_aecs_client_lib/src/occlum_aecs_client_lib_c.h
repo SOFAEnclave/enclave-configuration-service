@@ -44,6 +44,32 @@ int aecs_client_get_secret_by_buffer(const char* aecs_server_endpoint,
                                      char* secret_outbuf,
                                      int* secret_outbuf_len);
 
+/**
+ * @brief Create Trusted application bound secret
+ *
+ * @details Trusted application bound secret means the secret can only
+ *          be used and delete by the trusted application which create it.
+ *
+ * @param[in] aecs_server_endpoint
+ * @param[in] aecs_server_policy
+ * @param[in] secret_policy_file defined how to create the secret
+ * @return int Error code
+ */
+int aecs_client_create_ta_secret(const char* aecs_server_endpoint,
+                                 const char* aecs_server_policy,
+                                 const char* secret_policy_file);
+
+/**
+ * @brief Destroy Trusted application bound secret
+ *
+ * @param[in] aecs_server_endpoint
+ * @param[in] aecs_server_policy
+ * @param[in] secret_name
+ * @return int Error code
+ */
+int aecs_client_destroy_ta_secret(const char* aecs_server_endpoint,
+                                  const char* aecs_server_policy,
+                                  const char* secret_name);
 #ifdef __cplusplus
 }
 #endif

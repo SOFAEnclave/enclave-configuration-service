@@ -11,6 +11,8 @@
 #include "occlum_aecs_client_lib.h"
 #include "public_aecs_client_lib.h"
 
+#include "serviceadmin/serviceadmin_secret_policy.h"
+
 static TeeErrorCode EnvelopeDecryptAndVerify(
     const kubetee::GetEnclaveSecretResponse& secret,
     std::string nonce,
@@ -59,18 +61,25 @@ TeeErrorCode aecs_client_get_secret(const std::string& aecs_server_endpoint,
                                     const std::string& secret_name,
                                     const std::string& nonce,
                                     std::string* secret_str) {
-  // Create the authentication remote attestation report
-  aecs::untrusted::AecsClient aecs_client(aecs_server_endpoint);
   kubetee::GetEnclaveSecretRequest req;
   kubetee::GetEnclaveSecretResponse res;
+
+  // Create the authentication remote attestation report
   kubetee::UnifiedAttestationAuthReport* auth = req.mutable_auth_ra_report();
   kubetee::attestation::UaReportGenerationParameters param;
   param.tee_identity = kDummyTeeIdentity;
   param.report_type = kUaReportTypePassport;
   TEE_CHECK_RETURN(UaGenerateAuthReport(&param, auth));
-  req.set_service_name(secret_service);
+
+  // Get secret from AECS server
+  if (secret_service.empty()) {
+    req.set_service_name(kTaServiceName);
+  } else {
+    req.set_service_name(secret_service);
+  }
   req.set_secret_name(secret_name);
   req.set_nonce(nonce);
+  aecs::untrusted::AecsClient aecs_client(aecs_server_endpoint);
   TEE_CHECK_RETURN(aecs_client.GetEnclaveSecret(req, &res));
 
   // Verify the remote AECS enclave RA report
@@ -78,6 +87,61 @@ TeeErrorCode aecs_client_get_secret(const std::string& aecs_server_endpoint,
 
   // Decrypt and verify the digital envelope encrypted identity keys
   TEE_CHECK_RETURN(EnvelopeDecryptAndVerify(res, nonce, secret_str));
+
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode aecs_client_create_secret(const std::string& aecs_server_endpoint,
+                                       const std::string& aecs_server_policy,
+                                       const std::string& secret_policy_file) {
+  kubetee::CreateTaSecretRequest req;
+  kubetee::CreateTaSecretResponse res;
+
+  // Create the authentication remote attestation report
+  kubetee::UnifiedAttestationAuthReport* auth = req.mutable_auth_ra_report();
+  kubetee::attestation::UaReportGenerationParameters param;
+  param.tee_identity = kDummyTeeIdentity;
+  param.report_type = kUaReportTypePassport;
+  TEE_CHECK_RETURN(UaGenerateAuthReport(&param, auth));
+
+  // Parse the secret policies from yaml file
+  kubetee::SecretsParseResult result;
+  aecs::client::SecretPolicyParser policy_parser(secret_policy_file);
+  TEE_CHECK_RETURN(policy_parser.Parse(&result));
+  aecs::untrusted::AecsClient aecs_client(aecs_server_endpoint);
+  TeeErrorCode last_err = TEE_SUCCESS;
+  for (int i = 0; i < result.secrets_size(); i++) {
+    std::string secret_name = result.secrets()[i].spec().secret_name();
+    TEE_LOG_INFO("Create the secret[%d]: %s", i, secret_name.c_str());
+    req.mutable_secret()->CopyFrom(result.secrets()[i]);
+    req.mutable_secret()->mutable_spec()->mutable_policy()->Clear();
+    int ret = aecs_client.CreateTaSecret(req, &res);
+    if (ret != TEE_SUCCESS) {
+      TEE_LOG_ERROR("Fail to create secret: %s", secret_name.c_str());
+      last_err = ret;
+    }
+  }
+
+  return last_err;
+}
+
+TeeErrorCode aecs_client_destroy_secret(const std::string& aecs_server_endpoint,
+                                        const std::string& aecs_server_policy,
+                                        const std::string& secret_name) {
+  kubetee::DestroyTaSecretRequest req;
+  kubetee::DestroyTaSecretResponse res;
+
+  // Create the authentication remote attestation report
+  kubetee::UnifiedAttestationAuthReport* auth = req.mutable_auth_ra_report();
+  kubetee::attestation::UaReportGenerationParameters param;
+  param.tee_identity = kDummyTeeIdentity;
+  param.report_type = kUaReportTypePassport;
+  TEE_CHECK_RETURN(UaGenerateAuthReport(&param, auth));
+
+  // Destroy the trusted application bound secret
+  req.set_secret_name(secret_name);
+  aecs::untrusted::AecsClient aecs_client(aecs_server_endpoint);
+  TEE_CHECK_RETURN(aecs_client.DestroyTaSecret(req, &res));
 
   return TEE_SUCCESS;
 }
@@ -120,6 +184,24 @@ int aecs_client_get_secret_by_buffer(const char* aecs_server_endpoint,
   memcpy(RCAST(void*, secret_outbuf), secret_str.data(), secret_str.size());
   *secret_outbuf_len = secret_str.size();
   return TEE_SUCCESS;
+}
+
+int aecs_client_create_ta_secret(const char* aecs_server_endpoint,
+                                 const char* aecs_server_policy,
+                                 const char* secret_policy_file) {
+  TEE_CHECK_RETURN(aecs_client_create_secret(SAFESTR(aecs_server_endpoint),
+                                             SAFESTR(aecs_server_policy),
+                                             SAFESTR(secret_policy_file)));
+  return 0;
+}
+
+int aecs_client_destroy_ta_secret(const char* aecs_server_endpoint,
+                                  const char* aecs_server_policy,
+                                  const char* secret_name) {
+  TEE_CHECK_RETURN(aecs_client_destroy_secret(SAFESTR(aecs_server_endpoint),
+                                              SAFESTR(aecs_server_policy),
+                                              SAFESTR(secret_name)));
+  return 0;
 }
 
 #ifdef __cplusplus

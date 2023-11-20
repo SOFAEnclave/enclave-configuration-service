@@ -32,6 +32,8 @@ class EnclaveInstance {
 
   // Generator RA report by the related AttestationGenerator
   TeeErrorCode CreateRaReport(bool use_cache = true);
+  TeeErrorCode CreateRaReport(const std::string& hex_user_data,
+                              bool use_cache = true);
 
   // Run ECall Function based on serialized protobuf message parameters
   TeeErrorCode TeeRun(const std::string& function_name,

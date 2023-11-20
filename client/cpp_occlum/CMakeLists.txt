@@ -44,6 +44,10 @@ include_directories(${UAL_TOP_DIR}/include/sgx)
 SET(UAL_LIBS_LINK -lual -lprotobuf -lcurl_static -lssl -lcrypto)
 SET(UAL_LIBS_NAME ual)
 
+# Build the third party libraries
+add_subdirectory(${AECS_TOP_DIR}/third_party/gflags ${CMAKE_BINARY_DIR}/gflags)
+add_subdirectory(${AECS_TOP_DIR}/third_party/yaml-cpp ${CMAKE_BINARY_DIR}/yaml-cpp)
+
 # Only build the required libraries for aecs_client
 add_subdirectory(${UAL_TOP_DIR}/cmake/ual_untrusted ${CMAKE_BINARY_DIR}/ual)
 add_subdirectory(occlum_aecs_client_lib)
