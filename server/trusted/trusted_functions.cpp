@@ -1146,21 +1146,33 @@ TeeErrorCode TeeGetEnclaveSecret(const std::string& req_str,
   // Check the service and secret name in secret
   kubetee::EnclaveSecret secret;
   PB_PARSE(secret, secret_str);
-  if (req.service_name() != secret.spec().service_name()) {
+  const kubetee::EnclaveSecretSpec& spec = secret.spec();
+  if (req.service_name() != spec.service_name()) {
     ELOG_ERROR("Service name does not match what in the secret spec");
     return AECS_ERROR_SECRET_GET_MISMATCH_SERVICE_NAME;
   }
-  if (req.secret_name() != secret.spec().secret_name()) {
+  if (req.secret_name() != spec.secret_name()) {
     ELOG_ERROR("Secret name does not match what in the secret spec");
     return AECS_ERROR_SECRET_GET_MISMATCH_SECRET_NAME;
   }
 
+  // Check the policy type and empty
+  if ((spec.policy().type() == kubetee::POLICY_TYPE_NEVER_EXPORT) ||
+      (spec.policy().policy().main_attributes_size() == 0)) {
+    ELOG_ERROR("Cannot get internal secret");
+    return AECS_ERROR_SECRET_GET_INTERNAL;
+  }
+
   // Verify the enclave service RA report by the secret policy
   const kubetee::UnifiedAttestationAuthReport& auth = req.auth_ra_report();
-  TEE_CHECK_RETURN(VerifySecretPolicy(auth, secret.spec().policy()));
+  TEE_CHECK_RETURN(VerifySecretPolicy(auth, spec.policy()));
 
   // Encrypt the secret by the enclave service public key
-  TEE_CHECK_RETURN(EnvelopeEncryptAndSign(auth.pem_public_key(), secret.data(),
+  // The secret is protobuf serialized in storage
+  // so, serialize it to JSON as the same as get public
+  std::string secret_json;
+  PB2JSON(secret, &secret_json);
+  TEE_CHECK_RETURN(EnvelopeEncryptAndSign(auth.pem_public_key(), secret_json,
                                           req.nonce(),
                                           res.mutable_secret_enc()));
 
@@ -1191,13 +1203,20 @@ TeeErrorCode TeeGetEnclaveSecretPublic(const std::string& req_str,
   // Check the service and secret name in secret
   kubetee::EnclaveSecret secret;
   PB_PARSE(secret, secret_str);
-  if (req.service_name() != secret.spec().service_name()) {
+  const kubetee::EnclaveSecretSpec& spec = secret.spec();
+  if (req.service_name() != spec.service_name()) {
     ELOG_ERROR("Service name does not match what in the secret spec");
     return AECS_ERROR_SECRET_GETPUB_MISMATCH_SERVICE_NAME;
   }
-  if (req.secret_name() != secret.spec().secret_name()) {
+  if (req.secret_name() != spec.secret_name()) {
     ELOG_ERROR("Secret name does not match what in the secret spec");
     return AECS_ERROR_SECRET_GETPUB_MISMATCH_SECRET_NAME;
+  }
+
+  // If private, cannot get public key
+  if (spec.share() != "public") {
+    ELOG_ERROR("Cannot get public key when secret is private");
+    return AECS_ERROR_SECRET_GETPUB_PRIVATE;
   }
 
   // Get public key from secret
@@ -1219,21 +1238,6 @@ TeeErrorCode TeeGetEnclaveSecretPublic(const std::string& req_str,
     // Always return spec if allow to share
     // Just no public key
     secret_data_pub->clear();
-  }
-
-  // Clear the sensitive message
-  const kubetee::UnifiedAttestationPolicy& secret_policy =
-      secret.spec().policy().policy();
-  for (int i = 0; i < secret_policy.main_attributes_size(); i++) {
-    // It's not so necessary to clear spid as it also in RA report
-    // secret_policy.mutable_main_attributes(i)->clear_hex_spid();
-  }
-
-  // Clear all if it is not allowed to be shared
-  std::string share = secret.spec().share();
-  if (share != "public") {
-    secret.Clear();
-    secret.mutable_spec()->set_share(share);
   }
 
   // Sign the secret by AECS identity private key
@@ -1278,16 +1282,19 @@ TeeErrorCode TeeCreateTaSecret(const std::string& req_str,
   secret_spec->set_readonly("true");
   secret_spec->set_share("false");
 
-  // Verify the trusted application RA report by the secret policy
-  kubetee::UnifiedAttestationPolicy* secret_policy =
-      secret_spec->mutable_policy()->mutable_policy();
-  const kubetee::UnifiedAttestationAuthReport& auth = req.auth_ra_report();
-  UnifiedAttestationAttributes* attr = secret_policy->add_main_attributes();
-  attr->Clear();
-  TEE_CHECK_RETURN(UaGetAuthReportAttr(auth, attr));
-  // Don't check public key and user data
-  secret_policy->clear_pem_public_key();
-  attr->clear_hex_hash_or_pem_pubkey();
+  // Prepare the TA bound secret policy
+  kubetee::EnclaveSecretPolicy* spec_policy = secret_spec->mutable_policy();
+  if (spec_policy->type() == kubetee::POLICY_TYPE_BOUND) {
+    kubetee::UnifiedAttestationPolicy* secret_policy =
+        spec_policy->mutable_policy();
+    const kubetee::UnifiedAttestationAuthReport& auth = req.auth_ra_report();
+    UnifiedAttestationAttributes* attr = secret_policy->add_main_attributes();
+    attr->Clear();
+    TEE_CHECK_RETURN(UaGetAuthReportAttr(auth, attr));
+    // Don't check public key and user data
+    secret_policy->clear_pem_public_key();
+    attr->clear_hex_hash_or_pem_pubkey();
+  }
 
   // Check whether achieve to the max number of secrets
   StorageTrustedBridge& storage = StorageTrustedBridge::GetInstance();

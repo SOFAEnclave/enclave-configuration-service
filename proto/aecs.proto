@@ -20,8 +20,19 @@ enum EnclaveSecretType {
   SECRET_TYPE_CONFIGURATIONS = 5;
 }
 
+enum EnclavePolicyType {
+  // Default type, should set the policy when create secret
+  POLICY_TYPE_BOUND = 0;
+  // Policy is not bound when create, get is outside AECS
+  POLICY_TYPE_UNBOUND = 1;
+  // If set this type for key, key cannot be gotten, but
+  // still can be used for encrypt/decrypt/sign/verify...
+  POLICY_TYPE_NEVER_EXPORT = 2;
+}
+
 message EnclaveSecretPolicy {
   UnifiedAttestationPolicy policy = 1;
+  EnclavePolicyType type = 2;
 }
 
 message EnclaveKvPair {
@@ -360,8 +371,8 @@ message GetEnclaveSecretPublicRequest {
 message GetEnclaveSecretPublicResponse {
   // RA report of AECS
   UnifiedAttestationAuthReport auth_ra_report = 1;
-  // This field include the pb2json serialized string of EnclaveSecret type
-  // secret with spec and only public key in data filed
+  // This field include the JSON serialized string of EnclaveSecret,
+  // including spec and only public key in data filed
   string secret_public = 2;
   // Sign the secret_public string and nonce together by AECS private key
   // just append nonce to the end of secret_public

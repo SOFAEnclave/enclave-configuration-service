@@ -78,7 +78,7 @@ if [ "$ACTIONS" == "all" -o "$ACTIONS" == "run" ] ; then
       --nonce nonce_2 \
       --output saved_secret_aes_256 && \
   OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
-      --action get \
+      --action getpub \
       --endpoint localhost:19527 \
       --service $SERVICE_NAME \
       --secret $SECRET_RSA_NAME \
@@ -87,7 +87,7 @@ if [ "$ACTIONS" == "all" -o "$ACTIONS" == "run" ] ; then
   OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
       --action create \
       --endpoint localhost:19527 \
-      --policy /etc/kubetee/service_secret_policy.yaml && \
+      --policy /etc/kubetee/ta_secret_policy.yaml && \
   OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
       --action get \
       --endpoint localhost:19527 \

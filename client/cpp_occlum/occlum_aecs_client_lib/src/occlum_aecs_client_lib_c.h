@@ -13,6 +13,7 @@ extern "C" {
  * @param[in] aecs_server_policy
  * @param[in] secret_service
  * @param[in] secret_name
+ * @param[in] secret_policy
  * @param[in] nonce
  * @param[in] file name to save secret
  * @return int Error code
@@ -21,6 +22,7 @@ int aecs_client_get_secret_and_save_file(const char* aecs_server_endpoint,
                                          const char* aecs_server_policy,
                                          const char* secret_service,
                                          const char* secret_name,
+                                         const char* secret_policy,
                                          const char* nonce,
                                          const char* save_file_name);
 
@@ -31,6 +33,7 @@ int aecs_client_get_secret_and_save_file(const char* aecs_server_endpoint,
  * @param[in] aecs_server_policy
  * @param[in] secret_service
  * @param[in] secret_name
+ * @param[in] secret_policy
  * @param[in] nonce
  * @param[out] secret_outbuf output buffer which includes the secret
  * @param[inout] secret_outbuf_len max len as input/real len as output
@@ -40,6 +43,7 @@ int aecs_client_get_secret_by_buffer(const char* aecs_server_endpoint,
                                      const char* aecs_server_policy,
                                      const char* secret_service,
                                      const char* secret_name,
+                                     const char* secret_policy,
                                      const char* nonce,
                                      char* secret_outbuf,
                                      int* secret_outbuf_len);

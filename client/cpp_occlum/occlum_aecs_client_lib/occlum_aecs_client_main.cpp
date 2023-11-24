@@ -40,7 +40,7 @@ DEFINE_string(output, "", "output file to save secret when get/getpub");
 //=============================================================
 static int DoCreateSecret() {
   std::string aecs_ra_policy = "";
-  printf("[Get secret public key]\n");
+  printf("[Create Secret]\n");
   printf("  AECS Server: %s\n", FLAGS_endpoint.c_str());
   printf("  Template File: %s\n", FLAGS_policy.c_str());
 
@@ -57,7 +57,7 @@ static int DoCreateSecret() {
 
 static int DoDestroySecret() {
   std::string aecs_ra_policy = "";
-  printf("[Get secret public key]\n");
+  printf("[Destroy Secret]\n");
   printf("  AECS Server: %s\n", FLAGS_endpoint.c_str());
   printf("  Secret Name: %s\n", FLAGS_secret.c_str());
 
@@ -74,6 +74,7 @@ static int DoDestroySecret() {
 
 static int DoGetSecret() {
   std::string aecs_ra_policy = "";
+  std::string secret_policy = "{}";
   printf("[Get secret]\n");
   printf("  AECS Server: %s\n", FLAGS_endpoint.c_str());
   printf("  Service Name: %s\n", FLAGS_action.c_str());
@@ -84,7 +85,8 @@ static int DoGetSecret() {
   // Use the C-ABI interface to get secret
   int ret = aecs_client_get_secret_and_save_file(
       FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_service.c_str(),
-      FLAGS_secret.c_str(), FLAGS_nonce.c_str(), FLAGS_output.c_str());
+      FLAGS_secret.c_str(), secret_policy.data(), FLAGS_nonce.c_str(),
+      FLAGS_output.c_str());
   if (ret != 0) {
     printf("Fail to get secret from aecs: %d!\n", ret);
     return ret;
@@ -106,6 +108,7 @@ static int DoGetSecret() {
 
 static int DoGetSecretPublic() {
   std::string aecs_ra_policy = "";
+  std::string secret_policy = "";
   printf("[Get secret public key]\n");
   printf("  AECS Server: %s\n", FLAGS_endpoint.c_str());
   printf("  Service Name: %s\n", FLAGS_action.c_str());
@@ -116,7 +119,8 @@ static int DoGetSecretPublic() {
   // Use the C-ABI interface to get secret public key
   int ret = aecs_client_get_public_secret_and_save_file(
       FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_service.c_str(),
-      FLAGS_secret.c_str(), FLAGS_nonce.c_str(), FLAGS_output.c_str());
+      FLAGS_secret.c_str(), secret_policy.data(), FLAGS_nonce.c_str(),
+      FLAGS_output.c_str());
   if (ret != 0) {
     printf("Fail to get secret public key from aecs: %d!\n", ret);
     return ret;

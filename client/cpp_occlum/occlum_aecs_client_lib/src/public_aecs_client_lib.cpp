@@ -26,12 +26,13 @@ TeeErrorCode aecs_client_get_public_secret_to_file(
     const std::string& aecs_server_policy,
     const std::string& secret_service,
     const std::string& secret_name,
+    const std::string& secret_policy,
     const std::string& nonce,
     const std::string& save_file_name) {
   std::string secret_public_str;
   TEE_CHECK_RETURN(aecs_client_get_public_secret(
       aecs_server_endpoint, aecs_server_policy, secret_service, secret_name,
-      nonce, &secret_public_str));
+      secret_policy, nonce, &secret_public_str));
   // Save the secret string into local file system
   // For occlum,  it should be secure filesytem to avoid secret leak
   using kubetee::utils::FsWriteString;
@@ -45,8 +46,9 @@ TeeErrorCode aecs_client_get_public_secret(
     const std::string& aecs_server_policy,
     const std::string& secret_service,
     const std::string& secret_name,
+    const std::string& secret_policy,
     const std::string& nonce,
-    std::string* secret) {
+    std::string* secret_public) {
   // Create the authentication remote attestation report
   aecs::untrusted::AecsClient aecs_client(aecs_server_endpoint);
   kubetee::GetEnclaveSecretPublicRequest req;
@@ -70,8 +72,18 @@ TeeErrorCode aecs_client_get_public_secret(
   TEE_CHECK_RETURN(
       kubetee::common::RsaCrypto::Verify(verify_pubkey, sig_str, signature));
 
-  *secret = res.secret_public();
+  // Verify secret policy if necessary
+  kubetee::EnclaveSecret secret;
+  JSON2PB(res.secret_public(), &secret);
+  if (!secret_policy.empty() && secret_policy != "{}") {
+    const kubetee::UnifiedAttestationPolicy& policy =
+        secret.spec().policy().policy();
+    kubetee::UnifiedAttestationPolicy expected_policy;
+    JSON2PB(secret_policy, &expected_policy);
+    TEE_CHECK_RETURN(UaVerifyPolicy(policy, expected_policy));
+  }
 
+  secret_public->assign(secret.data());
   return TEE_SUCCESS;
 }
 
@@ -84,12 +96,13 @@ int aecs_client_get_public_secret_and_save_file(
     const char* aecs_server_policy,
     const char* secret_service,
     const char* secret_name,
+    const char* secret_policy,
     const char* nonce,
     const char* save_file_name) {
   TEE_CHECK_RETURN(aecs_client_get_public_secret_to_file(
       SAFESTR(aecs_server_endpoint), SAFESTR(aecs_server_policy),
-      SAFESTR(secret_service), SAFESTR(secret_name), SAFESTR(nonce),
-      SAFESTR(save_file_name)));
+      SAFESTR(secret_service), SAFESTR(secret_name), SAFESTR(secret_policy),
+      SAFESTR(nonce), SAFESTR(save_file_name)));
   return 0;
 }
 
@@ -97,6 +110,7 @@ int aecs_client_get_public_secret_by_buffer(const char* aecs_server_endpoint,
                                             const char* aecs_server_policy,
                                             const char* secret_service,
                                             const char* secret_name,
+                                            const char* secret_policy,
                                             const char* nonce,
                                             const char* secret_outbuf,
                                             int* secret_outbuf_len) {
@@ -105,8 +119,8 @@ int aecs_client_get_public_secret_by_buffer(const char* aecs_server_endpoint,
   std::string secret_str;
   TEE_CHECK_RETURN(aecs_client_get_public_secret(
       SAFESTR(aecs_server_endpoint), SAFESTR(aecs_server_policy),
-      SAFESTR(secret_service), SAFESTR(secret_name), SAFESTR(nonce),
-      &secret_str));
+      SAFESTR(secret_service), SAFESTR(secret_name), SAFESTR(secret_policy),
+      SAFESTR(nonce), &secret_str));
   if (*secret_outbuf_len <= secret_str.size()) {
     return TEE_ERROR_SMALL_BUFFER;
   }
