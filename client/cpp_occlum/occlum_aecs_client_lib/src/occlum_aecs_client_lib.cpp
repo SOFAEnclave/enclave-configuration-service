@@ -166,13 +166,14 @@ TeeErrorCode aecs_client_destroy_secret(const std::string& aecs_server_endpoint,
 extern "C" {
 #endif
 
-int aecs_client_get_secret_and_save_file(const char* aecs_server_endpoint,
-                                         const char* aecs_server_policy,
-                                         const char* secret_service,
-                                         const char* secret_name,
-                                         const char* secret_policy,
-                                         const char* nonce,
-                                         const char* save_file_name) {
+/// Get Secret for TEE application and Save to file
+int aecs_client_get_secret_file(const char* aecs_server_endpoint,
+                                const char* aecs_server_policy,
+                                const char* secret_service,
+                                const char* secret_name,
+                                const char* secret_policy,
+                                const char* nonce,
+                                const char* save_file_name) {
   TEE_CHECK_RETURN(aecs_client_get_secret_to_file(
       SAFESTR(aecs_server_endpoint), SAFESTR(aecs_server_policy),
       SAFESTR(secret_service), SAFESTR(secret_name), SAFESTR(secret_policy),
@@ -180,14 +181,28 @@ int aecs_client_get_secret_and_save_file(const char* aecs_server_endpoint,
   return 0;
 }
 
-int aecs_client_get_secret_by_buffer(const char* aecs_server_endpoint,
-                                     const char* aecs_server_policy,
-                                     const char* secret_service,
-                                     const char* secret_name,
-                                     const char* secret_policy,
-                                     const char* nonce,
-                                     char* secret_outbuf,
-                                     int* secret_outbuf_len) {
+int aecs_client_get_secret_and_save_file(const char* aecs_server_endpoint,
+                                         const char* aecs_server_policy,
+                                         const char* secret_service,
+                                         const char* secret_name,
+                                         const char* secret_policy,
+                                         const char* nonce,
+                                         const char* save_file_name) {
+  TEE_FUNCTION_DEPRECATED();
+  return aecs_client_get_secret_file(aecs_server_endpoint, aecs_server_policy,
+                                     secret_service, secret_name, "", nonce,
+                                     save_file_name);
+}
+
+/// Get Secret for TEE application and return it buffer
+int aecs_client_get_secret_buffer(const char* aecs_server_endpoint,
+                                  const char* aecs_server_policy,
+                                  const char* secret_service,
+                                  const char* secret_name,
+                                  const char* secret_policy,
+                                  const char* nonce,
+                                  char* secret_outbuf,
+                                  int* secret_outbuf_len) {
   TEE_CHECK_VALIDBUF(secret_outbuf, secret_outbuf_len);
 
   std::string secret_str;
@@ -204,6 +219,20 @@ int aecs_client_get_secret_by_buffer(const char* aecs_server_endpoint,
   return TEE_SUCCESS;
 }
 
+int aecs_client_get_secret_by_buffer(const char* aecs_server_endpoint,
+                                     const char* aecs_server_policy,
+                                     const char* secret_service,
+                                     const char* secret_name,
+                                     const char* nonce,
+                                     char* secret_outbuf,
+                                     int* secret_outbuf_len) {
+  TEE_FUNCTION_DEPRECATED();
+  return aecs_client_get_secret_buffer(aecs_server_endpoint, aecs_server_policy,
+                                       secret_service, secret_name, "", nonce,
+                                       secret_outbuf, secret_outbuf_len);
+}
+
+/// Create Trusted application bound secret
 int aecs_client_create_ta_secret(const char* aecs_server_endpoint,
                                  const char* aecs_server_policy,
                                  const char* secret_policy_file) {
@@ -213,6 +242,7 @@ int aecs_client_create_ta_secret(const char* aecs_server_endpoint,
   return 0;
 }
 
+/// Destroy Trusted application bound secret
 int aecs_client_destroy_ta_secret(const char* aecs_server_endpoint,
                                   const char* aecs_server_policy,
                                   const char* secret_name) {

@@ -18,11 +18,18 @@ extern "C" {
  * @param[in] file name to save secret
  * @return int Error code
  */
+int aecs_client_get_secret_file(const char* aecs_server_endpoint,
+                                const char* aecs_server_policy,
+                                const char* secret_service,
+                                const char* secret_name,
+                                const char* secret_policy,
+                                const char* nonce,
+                                const char* save_file_name);
+
 int aecs_client_get_secret_and_save_file(const char* aecs_server_endpoint,
                                          const char* aecs_server_policy,
                                          const char* secret_service,
                                          const char* secret_name,
-                                         const char* secret_policy,
                                          const char* nonce,
                                          const char* save_file_name);
 
@@ -39,11 +46,19 @@ int aecs_client_get_secret_and_save_file(const char* aecs_server_endpoint,
  * @param[inout] secret_outbuf_len max len as input/real len as output
  * @return int Error code
  */
+int aecs_client_get_secret_buffer(const char* aecs_server_endpoint,
+                                  const char* aecs_server_policy,
+                                  const char* secret_service,
+                                  const char* secret_name,
+                                  const char* secret_policy,
+                                  const char* nonce,
+                                  char* secret_outbuf,
+                                  int* secret_outbuf_len);
+
 int aecs_client_get_secret_by_buffer(const char* aecs_server_endpoint,
                                      const char* aecs_server_policy,
                                      const char* secret_service,
                                      const char* secret_name,
-                                     const char* secret_policy,
                                      const char* nonce,
                                      char* secret_outbuf,
                                      int* secret_outbuf_len);

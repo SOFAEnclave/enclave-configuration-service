@@ -18,12 +18,19 @@ extern "C" {
  * @param[in] file name to save secret public key
  * @return int Error code
  */
+int aecs_client_get_secret_public_file(const char* aecs_server_endpoint,
+                                       const char* aecs_server_policy,
+                                       const char* secret_service,
+                                       const char* secret_name,
+                                       const char* secret_policy,
+                                       const char* nonce,
+                                       const char* save_file_name);
+
 int aecs_client_get_public_secret_and_save_file(
     const char* aecs_server_endpoint,
     const char* aecs_server_policy,
     const char* secret_service,
     const char* secret_name,
-    const char* secret_policy,
     const char* nonce,
     const char* save_file_name);
 
@@ -40,6 +47,15 @@ int aecs_client_get_public_secret_and_save_file(
  * @param[inout] secret_outbuf_len max len as input/real len as output
  * @return int Error code
  */
+int aecs_client_get_secret_public_buffer(const char* aecs_server_endpoint,
+                                         const char* aecs_server_policy,
+                                         const char* secret_service,
+                                         const char* secret_name,
+                                         const char* secret_policy,
+                                         const char* nonce,
+                                         const char* secret_outbuf,
+                                         int* secret_outbuf_len);
+
 int aecs_client_get_public_secret_by_buffer(const char* aecs_server_endpoint,
                                             const char* aecs_server_policy,
                                             const char* secret_service,

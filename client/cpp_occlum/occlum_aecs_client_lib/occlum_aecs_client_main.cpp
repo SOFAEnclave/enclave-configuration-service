@@ -83,7 +83,7 @@ static int DoGetSecret() {
   printf("  File Name: %s\n", FLAGS_output.c_str());
 
   // Use the C-ABI interface to get secret
-  int ret = aecs_client_get_secret_and_save_file(
+  int ret = aecs_client_get_secret_file(
       FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_service.c_str(),
       FLAGS_secret.c_str(), secret_policy.data(), FLAGS_nonce.c_str(),
       FLAGS_output.c_str());
@@ -117,7 +117,7 @@ static int DoGetSecretPublic() {
   printf("  File Name: %s\n", FLAGS_output.c_str());
 
   // Use the C-ABI interface to get secret public key
-  int ret = aecs_client_get_public_secret_and_save_file(
+  int ret = aecs_client_get_secret_public_file(
       FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_service.c_str(),
       FLAGS_secret.c_str(), secret_policy.data(), FLAGS_nonce.c_str(),
       FLAGS_output.c_str());
