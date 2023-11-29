@@ -342,18 +342,51 @@ message ListEnclaveSecretResponse {
   repeated EnclaveSecretSpec secrets = 1;
 }
 
-message GetEnclaveSecretRequest {
-  UnifiedAttestationAuthReport auth_ra_report = 1;
-  string service_name = 2;
-  string secret_name = 3;
-  string nonce = 4;
+/// Trusted application manage the secret
+message TaRemoteCallRequest {
+  UnifiedAttestationAuthReport auth_report = 1;
+  string function_name = 2;
+  string req_json = 3;
+  string signature_b64 = 4;
 }
 
-message GetEnclaveSecretResponse {
-  UnifiedAttestationAuthReport auth_ra_report = 1;
-  DigitalEnvelopeEncrypted secret_enc = 2;
+message TaRemoteCallResponse {
+  UnifiedAttestationAuthReport auth_report = 1;
+  string res_json = 2;
+  string signature_b64 = 3;
 }
 
+message TaCreateSecretRequest {
+  EnclaveSecret secret = 1;
+  string nonce = 2;
+}
+
+message TaCreateSecretResponse {
+  string nonce = 1;
+}
+
+message TaDestroySecretRequest {
+  string secret_name = 1;
+  string nonce = 2;
+}
+
+message TaDestroySecretResponse {
+  string nonce = 1;
+}
+
+message TaGetSecretRequest {
+  string service_name = 1;
+  string secret_name = 2;
+  string nonce = 3;
+}
+
+message TaGetSecretResponse {
+  // Digital envelope encrypted JSON serialized string of EnclaveSecret
+  DigitalEnvelopeEncrypted secret_enc = 1;
+  string nonce = 2;
+}
+
+/// Get secret public for both trusted application and untrusted client
 message GetEnclaveSecretPublicRequest {
   string service_name = 1;
   string secret_name = 2;
@@ -380,24 +413,4 @@ message GetEnclaveSecretPublicResponse {
   string signature_b64 = 3;
   // Should be the same nonce in req
   string nonce = 4;
-}
-
-message CreateTaSecretRequest {
-  UnifiedAttestationAuthReport auth_ra_report = 1;
-  EnclaveSecret secret = 2;
-}
-
-message CreateTaSecretResponse {
-  // RA report of AECS
-  UnifiedAttestationAuthReport auth_ra_report = 1;
-}
-
-message DestroyTaSecretRequest {
-  UnifiedAttestationAuthReport auth_ra_report = 1;
-  string secret_name = 3;
-}
-
-message DestroyTaSecretResponse {
-  // RA report of AECS
-  UnifiedAttestationAuthReport auth_ra_report = 1;
 }

@@ -63,38 +63,38 @@ fi
 # 3. Run application
 if [ "$ACTIONS" == "all" -o "$ACTIONS" == "run" ] ; then
   cd $OCCLUM_INSTANCE_DIR && \
-  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
+  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_cli \
       --action get \
       --endpoint localhost:19527 \
       --service $SERVICE_NAME \
       --secret $SECRET_RSA_NAME \
       --nonce nonce_1 \
       --output saved_secret_rsa_keypair && \
-  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
+  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_cli \
       --action get \
       --endpoint localhost:19527 \
       --service $SERVICE_NAME \
       --secret $SECRET_AES_NAME \
       --nonce nonce_2 \
       --output saved_secret_aes_256 && \
-  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
+  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_cli \
       --action getpub \
       --endpoint localhost:19527 \
       --service $SERVICE_NAME \
       --secret $SECRET_RSA_NAME \
       --nonce nonce_3 \
       --output saved_secret_rsa_public && \
-  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
+  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_cli \
       --action create \
       --endpoint localhost:19527 \
       --policy /etc/kubetee/ta_secret_policy.yaml && \
-  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
+  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_cli \
       --action get \
       --endpoint localhost:19527 \
       --secret $SECRET_AES_NAME \
       --nonce nonce_4 \
       --output saved_ra_secret_aes_256 && \
-  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_get_secret \
+  OCCLUM_LOG_LEVEL=$LOGLEVEL occlum run /bin/aecs_client_cli \
       --action destroy \
       --endpoint localhost:19527 \
       --secret $SECRET_AES_NAME

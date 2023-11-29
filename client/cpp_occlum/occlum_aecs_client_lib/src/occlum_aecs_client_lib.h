@@ -16,7 +16,8 @@ extern "C" {
  * @param[in] secret_service
  * @param[in] secret_name
  * @param[in] secret_policy
- * @param[in] nonce
+ * @param[in] hex_user_data to generate special client auth report
+ * @param[in] nonce freshness for this request
  * @param[in] save_file_name
  * @return int Error code
  */
@@ -26,6 +27,7 @@ TeeErrorCode aecs_client_get_secret_to_file(
     const std::string& secret_service,
     const std::string& secret_name,
     const std::string& secret_policy,
+    const std::string& hex_user_data,
     const std::string& nonce,
     const std::string& save_file_name);
 
@@ -37,7 +39,8 @@ TeeErrorCode aecs_client_get_secret_to_file(
  * @param[in] secret_service
  * @param[in] secret_name
  * @param[in] secret_policy
- * @param[in] nonce
+ * @param[in] hex_user_data to generate special client auth report
+ * @param[in] nonce freshness for this request
  * @param[out] secret Json-format secret
  * @return int Error code
  */
@@ -46,6 +49,7 @@ TeeErrorCode aecs_client_get_secret(const std::string& aecs_server_endpoint,
                                     const std::string& secret_service,
                                     const std::string& secret_name,
                                     const std::string& secret_policy,
+                                    const std::string& hex_user_data,
                                     const std::string& nonce,
                                     std::string* secret);
 
@@ -58,11 +62,15 @@ TeeErrorCode aecs_client_get_secret(const std::string& aecs_server_endpoint,
  * @param[in] aecs_server_endpoint
  * @param[in] aecs_server_policy
  * @param[in] secret_policy_file defined how to create the secret
+ * @param[in] hex_user_data to generate special client auth report
+ * @param[in] nonce freshness for this request
  * @return int Error code
  */
 TeeErrorCode aecs_client_create_secret(const std::string& aecs_server_endpoint,
                                        const std::string& aecs_server_policy,
-                                       const std::string& secret_policy_file);
+                                       const std::string& secret_policy_file,
+                                       const std::string& hex_user_data,
+                                       const std::string& nonce);
 
 /**
  * @brief Destroy Trusted application bound secret
@@ -70,11 +78,15 @@ TeeErrorCode aecs_client_create_secret(const std::string& aecs_server_endpoint,
  * @param[in] aecs_server_endpoint
  * @param[in] aecs_server_policy
  * @param[in] secret_name
+ * @param[in] hex_user_data to generate special client auth report
+ * @param[in] nonce freshness for this request
  * @return int Error code
  */
 TeeErrorCode aecs_client_destroy_secret(const std::string& aecs_server_endpoint,
                                         const std::string& aecs_server_policy,
-                                        const std::string& secret_name);
+                                        const std::string& secret_name,
+                                        const std::string& hex_user_data,
+                                        const std::string& nonce);
 
 #ifdef __cplusplus
 }

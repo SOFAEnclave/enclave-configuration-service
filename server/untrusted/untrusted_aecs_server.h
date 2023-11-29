@@ -24,20 +24,16 @@ using kubetee::UnifiedAttestationNestedPolicy;
 
 using kubetee::AdminRemoteCallRequest;
 using kubetee::AdminRemoteCallResponse;
-using kubetee::CreateTaSecretRequest;
-using kubetee::CreateTaSecretResponse;
-using kubetee::DestroyTaSecretRequest;
-using kubetee::DestroyTaSecretResponse;
 using kubetee::GetAecsStatusRequest;
 using kubetee::GetAecsStatusResponse;
 using kubetee::GetEnclaveSecretPublicRequest;
 using kubetee::GetEnclaveSecretPublicResponse;
-using kubetee::GetEnclaveSecretRequest;
-using kubetee::GetEnclaveSecretResponse;
 using kubetee::GetRemoteSecretRequest;
 using kubetee::GetRemoteSecretResponse;
 using kubetee::SyncWithRemoteAecsRequest;
 using kubetee::SyncWithRemoteAecsResponse;
+using kubetee::TaRemoteCallRequest;
+using kubetee::TaRemoteCallResponse;
 
 #define RETURN_ERROR(err, msg)                                              \
   if ((err) != TEE_SUCCESS) {                                               \
@@ -80,43 +76,20 @@ class AecsServiceImpl final : public kubetee::Aecs::Service {
                                 AdminRemoteCallResponse* res);
 
   // For enclave services
-  Status GetEnclaveSecret(ServerContext* context,
-                          const GetEnclaveSecretRequest* req,
-                          GetEnclaveSecretResponse* res);
+  Status TaRemoteCall(ServerContext* context,
+                      const TaRemoteCallRequest* req,
+                      TaRemoteCallResponse* res);
 
   // For non tee client and all
   Status GetEnclaveSecretPublic(ServerContext* context,
                                 const GetEnclaveSecretPublicRequest* req,
                                 GetEnclaveSecretPublicResponse* res);
 
-  // For creating trusted application bound secret
-  Status CreateTaSecret(ServerContext* context,
-                        const CreateTaSecretRequest* req,
-                        CreateTaSecretResponse* res);
-
-  // For deleting trusted application bound secret
-  Status DestroyTaSecret(ServerContext* context,
-                         const DestroyTaSecretRequest* req,
-                         DestroyTaSecretResponse* res);
-
   TeeErrorCode InitializeServerImpl(EnclaveInstance* enclave);
-  TeeErrorCode CheckRaAuthentication(const UnifiedAttestationAuthReport& auth);
   TeeErrorCode GetServerRaAuthentication(UnifiedAttestationAuthReport* auth);
   TeeErrorCode AecsSyncFromRemote(const std::string& remote_endpoint);
 
  private:
-  TeeErrorCode VerifySignatureAuth(const std::string& data,
-                                   const std::string& signature);
-  TeeErrorCode CheckMatchRules(
-      const UnifiedAttestationAuthReport& auth,
-      const UnifiedAttestationNestedPolicy& match_rules);
-  TeeErrorCode GetMatchRulesFromRaReport(
-      const UnifiedAttestationAuthReport& auth,
-      UnifiedAttestationNestedPolicy* rule);
-  Status GetEnclaveSecret_(const std::string& secret_name,
-                           const UnifiedAttestationAuthReport& auth,
-                           DigitalEnvelopeEncrypted* keys_enc);
-
   EnclaveInstance* enclave_;
 };
 

@@ -40,15 +40,17 @@ DEFINE_string(output, "", "output file to save secret when get/getpub");
 //=============================================================
 static int DoCreateSecret() {
   std::string aecs_ra_policy = "";
+  std::string report_hex_user_data = "31323334";
   printf("[Create Secret]\n");
   printf("  AECS Server: %s\n", FLAGS_endpoint.c_str());
   printf("  Template File: %s\n", FLAGS_policy.c_str());
 
   // Use the C-ABI interface to get secret public key
   int ret = aecs_client_create_ta_secret(
-      FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_policy.c_str());
+      FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_policy.c_str(),
+      report_hex_user_data.c_str(), FLAGS_nonce.c_str());
   if (ret != 0) {
-    printf("Fail to create secret: %d!\n", ret);
+    printf("Fail to create secret: 0x%X!\n", ret);
     return ret;
   }
 
@@ -57,15 +59,17 @@ static int DoCreateSecret() {
 
 static int DoDestroySecret() {
   std::string aecs_ra_policy = "";
+  std::string report_hex_user_data = "31323334";
   printf("[Destroy Secret]\n");
   printf("  AECS Server: %s\n", FLAGS_endpoint.c_str());
   printf("  Secret Name: %s\n", FLAGS_secret.c_str());
 
   // Use the C-ABI interface to get secret public key
   int ret = aecs_client_destroy_ta_secret(
-      FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_secret.c_str());
+      FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_secret.c_str(),
+      report_hex_user_data.c_str(), FLAGS_nonce.c_str());
   if (ret != 0) {
-    printf("Fail to destroy secret: %d!\n", ret);
+    printf("Fail to destroy secret: 0x%X!\n", ret);
     return ret;
   }
 
@@ -75,6 +79,7 @@ static int DoDestroySecret() {
 static int DoGetSecret() {
   std::string aecs_ra_policy = "";
   std::string secret_policy = "{}";
+  std::string report_hex_user_data = "31323334";
   printf("[Get secret]\n");
   printf("  AECS Server: %s\n", FLAGS_endpoint.c_str());
   printf("  Service Name: %s\n", FLAGS_action.c_str());
@@ -85,10 +90,10 @@ static int DoGetSecret() {
   // Use the C-ABI interface to get secret
   int ret = aecs_client_get_secret_file(
       FLAGS_endpoint.c_str(), aecs_ra_policy.c_str(), FLAGS_service.c_str(),
-      FLAGS_secret.c_str(), secret_policy.data(), FLAGS_nonce.c_str(),
-      FLAGS_output.c_str());
+      FLAGS_secret.c_str(), secret_policy.data(), report_hex_user_data.data(),
+      FLAGS_nonce.c_str(), FLAGS_output.c_str());
   if (ret != 0) {
-    printf("Fail to get secret from aecs: %d!\n", ret);
+    printf("Fail to get secret from aecs: 0x%X!\n", ret);
     return ret;
   }
 
@@ -97,7 +102,7 @@ static int DoGetSecret() {
   using kubetee::utils::FsReadString;
   ret = FsReadString(FLAGS_output, &secret_str);
   if (ret != 0) {
-    printf("Fail to read the secret file: %d\n", ret);
+    printf("Fail to read the secret file: 0x%X\n", ret);
     return ret;
   } else {
     printf("[Secret] %s\n", secret_str.c_str());
@@ -122,7 +127,7 @@ static int DoGetSecretPublic() {
       FLAGS_secret.c_str(), secret_policy.data(), FLAGS_nonce.c_str(),
       FLAGS_output.c_str());
   if (ret != 0) {
-    printf("Fail to get secret public key from aecs: %d!\n", ret);
+    printf("Fail to get secret public key from aecs: 0x%X!\n", ret);
     return ret;
   }
 
@@ -131,7 +136,7 @@ static int DoGetSecretPublic() {
   using kubetee::utils::FsReadString;
   ret = FsReadString(FLAGS_output, &secret_str);
   if (ret != 0) {
-    printf("Fail to read the secret file: %d\n", ret);
+    printf("Fail to read the secret file: 0x%X\n", ret);
     return ret;
   } else {
     printf("[Secret] %s\n", secret_str.c_str());
@@ -165,6 +170,6 @@ int main(int argc, char** argv) {
     ret = AECS_ERROR_PARAMETER_INVALID_ACTION;
   }
 
-  printf("Action done: %d\n", ret);
+  printf("Action done: 0x%X\n", ret);
   return ret;
 }

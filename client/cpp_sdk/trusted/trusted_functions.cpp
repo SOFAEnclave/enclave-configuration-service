@@ -40,13 +40,6 @@ static TeeErrorCode EnvelopeDecryptAndVerify(
     const std::string& verify_pubkey,
     const kubetee::DigitalEnvelopeEncrypted& env,
     std::string* plain) {
-  // If there is nonce, it will be included as envelope AES cipher add
-  const std::string nonce_test = "aecs_client";
-  if (env.aes_cipher().aad() != nonce_test) {
-    TEE_LOG_ERROR("Nonce mismatch when client get secret");
-    return AECS_ERROR_CLIENT_SECRET_NONCE_MISMATCHED;
-  }
-
   // Always decrypt cipher by identity private key
   TeeInstance& ti = TeeInstance::GetInstance();
   std::string prvkey = ti.GetIdentity().private_key();
@@ -54,6 +47,25 @@ static TeeErrorCode EnvelopeDecryptAndVerify(
   kubetee::common::DigitalEnvelope envelope;
   TEE_CHECK_RETURN(envelope.Decrypt(prvkey, env, plain));
   TEE_CHECK_RETURN(envelope.Verify(verify_pubkey, *plain, env));
+  return TEE_SUCCESS;
+}
+
+TeeErrorCode TeeIdentitySign(const std::string& req_str, std::string* res_str) {
+  kubetee::UnifiedFunctionGenericRequest req;
+  kubetee::UnifiedFunctionGenericResponse res;
+  JSON2PB(req_str, &req);
+
+  // Sign the input msg and output b64 signature
+  const std::string& msg = req.argv(0);
+  kubetee::common::AsymmetricCrypto ac;
+  const std::string& private_key = UakPrivate();
+  std::string res_signature;
+  TEE_CHECK_RETURN(
+      ac.Sign(private_key, msg, &res_signature, ac.isSmMode(private_key)));
+  kubetee::common::DataBytes res_signature_b64(res_signature);
+  res.add_result()->assign(res_signature_b64.ToBase64().GetStr());
+
+  PB2JSON(res, res_str);
   return TEE_SUCCESS;
 }
 
@@ -95,17 +107,33 @@ TeeErrorCode TeeInitializeAecsEnclave(const std::string& req_str,
 }
 
 TeeErrorCode TeeImportSecret(const std::string& req_str, std::string* res_str) {
-  kubetee::GetEnclaveSecretResponse req;
+  kubetee::TaRemoteCallResponse req;
   kubetee::UnifiedFunctionGenericResponse res;
   JSON2PB(req_str, &req);
 
   // Verify the remote AECS enclave RA report
-  TEE_CHECK_RETURN(VerifyAecsEnclave(req.auth_ra_report()));
+  TEE_CHECK_RETURN(VerifyAecsEnclave(req.auth_report()));
+
+  // Verify the req.signature_b64
+  kubetee::common::AsymmetricCrypto ac;
+  kubetee::common::DataBytes req_signature_b64(req.signature_b64());
+  const std::string& public_key = req.auth_report().pem_public_key();
+  TEE_CHECK_RETURN(ac.Verify(public_key, req.res_json(),
+                             req_signature_b64.FromBase64().GetStr(),
+                             ac.isSmMode(public_key)));
 
   // Decrypt and verify the digital envelope encrypted identity keys
   std::string secret_str;
-  TEE_CHECK_RETURN(EnvelopeDecryptAndVerify(
-      req.auth_ra_report().pem_public_key(), req.secret_enc(), &secret_str));
+  kubetee::TaGetSecretResponse res_get;
+  JSON2PB(req.res_json(), &res_get);
+  TEE_CHECK_RETURN(EnvelopeDecryptAndVerify(req.auth_report().pem_public_key(),
+                                            res_get.secret_enc(), &secret_str));
+
+  // Verify the res_get.nonce
+  if (res_get.nonce() != "aecs_client") {
+    ELOG_ERROR("Nonce mismatch when TaGetSecret");
+    return AECS_ERROR_CLIENT_SECRET_NONCE_MISMATCHED;
+  }
 
   kubetee::common::DataBytes data(secret_str);
   // This is a test enclave, in the formal enclave, we cannot leak secret
@@ -117,6 +145,7 @@ TeeErrorCode TeeImportSecret(const std::string& req_str, std::string* res_str) {
 
 TeeErrorCode RegisterTrustedUnifiedFunctionsEx() {
   ELOG_DEBUG("Register application trusted functions");
+  ADD_TRUSTED_UNIFIED_FUNCTION(TeeIdentitySign);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeImportSecret);
   ADD_TRUSTED_UNIFIED_FUNCTION(TeeInitializeAecsEnclave);
   return TEE_SUCCESS;

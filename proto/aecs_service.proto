@@ -57,24 +57,15 @@ service Aecs {
 // Business service interfaces
 // -----------------------------------------------------------
 
-  // Get the enclave secret based on RA
-  rpc GetEnclaveSecret(GetEnclaveSecretRequest)
-    returns (GetEnclaveSecretResponse) {
+  // Create and destroy the trusted application bound secret
+  // Get the secret created by TA or service administrator
+  rpc TaRemoteCall(TaRemoteCallRequest)
+    returns (TaRemoteCallResponse) {
   }
 
   // Get the enclave secret's public key
   // Of course, only for RSA key pair or certificate type
   rpc GetEnclaveSecretPublic(GetEnclaveSecretPublicRequest)
     returns (GetEnclaveSecretPublicResponse) {
-  }
-
-  // Create and destroy the trusted application bound secret
-  // Create the secret with policy from which TA is creating it
-  // Destroy the secret only by the TA who created it
-  rpc CreateTaSecret(CreateTaSecretRequest)
-    returns (CreateTaSecretResponse) {
-  }
-  rpc DestroyTaSecret(DestroyTaSecretRequest)
-    returns (DestroyTaSecretResponse) {
   }
 }

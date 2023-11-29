@@ -58,7 +58,7 @@ target_link_libraries(
 add_dependencies(${AECS_CLIENT_LIB} yaml-cpp ${UAL_LIBS_NAME})
 
 # Generate the test application
-set(APP aecs_client_get_secret)
+set(APP aecs_client_cli)
 file(GLOB APP_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(${APP} ${APP_SRCS})
 target_link_libraries(

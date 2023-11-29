@@ -20,14 +20,6 @@ using grpc::ClientContext;
 using grpc::Status;
 
 using kubetee::Aecs;
-using kubetee::CreateTaSecretRequest;
-using kubetee::CreateTaSecretResponse;
-using kubetee::DestroyTaSecretRequest;
-using kubetee::DestroyTaSecretResponse;
-using kubetee::GetEnclaveSecretRequest;
-using kubetee::GetEnclaveSecretResponse;
-using kubetee::IasReport;
-using kubetee::UnifiedAttestationAuthReport;
 
 namespace aecs {
 namespace untrusted {
@@ -41,18 +33,12 @@ class AecsClient : public kubetee::untrusted::TeeGrpcClient {
   explicit AecsClient(const std::string& endpoint);
   ~AecsClient() {}
 
-  TeeErrorCode GetEnclaveSecret(const GetEnclaveSecretRequest& request,
-                                GetEnclaveSecretResponse* response);
+  TeeErrorCode TaRemoteCall(const kubetee::TaRemoteCallRequest& req,
+                            kubetee::TaRemoteCallResponse* res);
 
   TeeErrorCode GetEnclaveSecretPublic(
       const kubetee::GetEnclaveSecretPublicRequest& request,
       kubetee::GetEnclaveSecretPublicResponse* response);
-
-  TeeErrorCode CreateTaSecret(const CreateTaSecretRequest& request,
-                              CreateTaSecretResponse* response);
-
-  TeeErrorCode DestroyTaSecret(const DestroyTaSecretRequest& request,
-                               DestroyTaSecretResponse* response);
 
  private:
   std::unique_ptr<Aecs::Stub> stub_;

@@ -45,7 +45,7 @@ Set the PCCS for UAL inside occlum image by environment variable
 export UA_ENV_PCCS_URL=https://<pccs-address>:8081/sgx/certification/v3/
 ```
 
-Finally, run aecs_client_get_secret application in occlum for test
+Finally, run aecs_client_cli application in occlum for test
 
 ```
 cd client/cpp_occlum

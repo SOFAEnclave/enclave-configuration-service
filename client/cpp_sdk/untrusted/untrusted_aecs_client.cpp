@@ -36,16 +36,14 @@ AecsClient::AecsClient(const std::string& endpoint) {
   stub_ = Aecs::NewStub(CreateInsecureChannel(endpoint));
 }
 
-TeeErrorCode AecsClient::GetEnclaveSecret(
-    const GetEnclaveSecretRequest& request,
-    GetEnclaveSecretResponse* response) {
-  Status status;
+TeeErrorCode AecsClient::TaRemoteCall(
+    const kubetee::TaRemoteCallRequest& request,
+    kubetee::TaRemoteCallResponse* response) {
   ClientContext context;
-
   context.set_deadline(std::chrono::system_clock::now() +
                        std::chrono::milliseconds(kTimeoutMs));
 
-  status = stub_->GetEnclaveSecret(&context, request, response);
+  Status status = stub_->TaRemoteCall(&context, request, response);
   return CheckStatusCode(status);
 }
 
@@ -59,30 +57,6 @@ TeeErrorCode AecsClient::GetEnclaveSecretPublic(
                        std::chrono::milliseconds(kTimeoutMs));
 
   status = stub_->GetEnclaveSecretPublic(&context, request, response);
-  return CheckStatusCode(status);
-}
-
-TeeErrorCode AecsClient::CreateTaSecret(const CreateTaSecretRequest& request,
-                                        CreateTaSecretResponse* response) {
-  Status status;
-  ClientContext context;
-
-  context.set_deadline(std::chrono::system_clock::now() +
-                       std::chrono::milliseconds(kTimeoutMs));
-
-  status = stub_->CreateTaSecret(&context, request, response);
-  return CheckStatusCode(status);
-}
-
-TeeErrorCode AecsClient::DestroyTaSecret(const DestroyTaSecretRequest& request,
-                                         DestroyTaSecretResponse* response) {
-  Status status;
-  ClientContext context;
-
-  context.set_deadline(std::chrono::system_clock::now() +
-                       std::chrono::milliseconds(kTimeoutMs));
-
-  status = stub_->DestroyTaSecret(&context, request, response);
   return CheckStatusCode(status);
 }
 
