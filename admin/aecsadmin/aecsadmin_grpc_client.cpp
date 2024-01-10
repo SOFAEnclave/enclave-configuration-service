@@ -45,9 +45,8 @@ TeeErrorCode AecsAdminClient::GetAecsStatus() {
   TEE_CHECK_RETURN(CHECK_STATUS(status));
   TEE_CHECK_RETURN(CheckServerRaReport(response.auth_ra_report()));
 
-  // If the server_pubkey_ is not saved, save it for later use
-  // It should only be saved when GetAecsStatus is called first time
-  if (server_pubkey_.empty()) {
+  // Save server_pubkey_ for later use
+  if (!response.auth_ra_report().pem_public_key().empty()) {
     server_pubkey_ = response.auth_ra_report().pem_public_key();
     TEE_LOG_DEBUG("Save AECS server public key\n%s", server_pubkey_.c_str());
   }
@@ -165,6 +164,7 @@ TeeErrorCode AecsAdminClient::DestroyTaSecret(
 TeeErrorCode AecsAdminClient::AecsProvision(const AecsProvisionRequest& req,
                                             AecsProvisionResponse* res) {
   TEE_CHECK_RETURN(RemoteCall("AecsProvision", req, res));
+  TEE_CHECK_RETURN(GetAecsStatus());
   return TEE_SUCCESS;
 }
 

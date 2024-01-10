@@ -44,7 +44,7 @@ foreach(_target aecsadmin serviceadmin)
     )
     target_link_libraries(${_target}
         -L${LIBRARY_OUTPUT_PATH} -L/usr/local/lib
-        -lprotobuf
+        -lprotobuf -lgpr
         gRPC::grpc++_reflection
         gflags_nothreads yaml-cpp
         -Wl,--start-group -lua_ugrpc ${UAL_LIBS_LINK} -Wl,--end-group

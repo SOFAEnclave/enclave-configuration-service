@@ -111,6 +111,11 @@ class AecsAdminClient : public kubetee::untrusted::TeeGrpcClient {
     return enclave_status_;
   }
 
+  // Update the server public key
+  TeeErrorCode UpdateServerPubkey(const std::string& pubkey) {
+    server_pubkey_ = pubkey;
+  }
+
  private:
   TeeErrorCode RemoteCall(const std::string& function_name,
                           const google::protobuf::Message& req,

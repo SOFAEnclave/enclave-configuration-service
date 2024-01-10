@@ -65,7 +65,7 @@ TeeErrorCode DoProvision(AecsAdminClient* aecs_client) {
   // CHECK_FLAGS(FLAGS_osskeysecret, "Empty OSS access key secret");
   // CHECK_FLAGS(FLAGS_ossbucket, "Empty OSS bucket name");
   // CHECK_FLAGS(FLAGS_ossendpoint, "Empty OSS endpoint");
-  CHECK_FLAGS(FLAGS_hostname, "Empty host name");
+  // CHECK_FLAGS(FLAGS_hostname, "Empty host name");
 
   req.mutable_auth()->set_access_key_id(FLAGS_osskeyid);
   req.mutable_auth()->set_access_key_secret(FLAGS_osskeysecret);
@@ -116,7 +116,7 @@ TeeErrorCode DoListIdentityKeyBackup(AecsAdminClient* aecs_client) {
   TEE_CHECK_RETURN(aecs_client->AecsListBackupIdentity(req, &res));
 
   // Simply list the json string of message
-  printf("[BackupList]: %d\n", res.results_size());
+  printf("[BackupList]: %ld\n", res.results_size());
   for (int i = 0; i < res.results_size(); i++) {
     printf("IdentityBackupName: %s, IdentityPublicKeyHash: %s\n",
            res.results()[i].identity_backup_name().c_str(),
@@ -211,7 +211,7 @@ TeeErrorCode DoListEnclaveService(AecsAdminClient* aecs_client) {
   // Simply list the json string of message
   std::string res_json_str;
   PB2JSON(res, &res_json_str);
-  printf("Total services: %d\n", res.services().names_size());
+  printf("Total services: %ld\n", res.services().names_size());
   printf("[Services] %s\n", res_json_str.c_str());
   return TEE_SUCCESS;
 }
