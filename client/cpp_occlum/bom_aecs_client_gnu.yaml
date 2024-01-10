@@ -6,7 +6,7 @@ targets:
     copy:
       - from: ../build/out
         files:
-          - name: aecs_client_cli
+          - aecs_client_cli
   - target: /opt/occlum/glibc/lib/
     copy:
       - files:

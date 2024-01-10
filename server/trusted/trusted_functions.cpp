@@ -689,7 +689,8 @@ TeeErrorCode AecsProvision(const std::string& req_str,
   ELOG_INFO("Swith to working status after provision");
   gAecsStatus = kAecsStatusWorking;
 
-  PB2JSON(res, res_str);
+  // Don't need response, avoid decrypt the useless string "{}"
+  // PB2JSON(res, res_str);
   return TEE_SUCCESS;
 }
 
@@ -984,7 +985,7 @@ TeeErrorCode ServiceAdminCreateSecret(const std::string& service_name,
     kubetee::StorageListAllResponse list_res;
     TEE_CHECK_RETURN(storage.ListAll(list_prefix, &list_res));
     ELOG_INFO("Current number of secrets: %ld", list_res.names_size());
-    if (list_res.names_size() > kMaxSecretsNum) {
+    if (list_res.names_size() >= kMaxSecretsNum) {
       ELOG_ERROR("Achieve to the max number of secrets");
       return AECS_ERROR_SECRET_CREATE_ACHIEVE_MAX;
     }

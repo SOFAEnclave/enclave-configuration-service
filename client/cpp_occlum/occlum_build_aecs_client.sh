@@ -37,7 +37,7 @@ EXIT_ERROR() {
 }
 
 get_tee_environment() {
-    if [ -e "/dev/jailhouse" ] ; then
+    if [ -e "/dev/jailhouse" -o -e "/dev/hyperenclave" ] ; then
         echo -ne "HYPERENCLAVE"
     elif [ -e "/dev/sgx_enclave" -o -e "/dev/sgx/enclave" ] ; then
         echo -ne "SGX2"
@@ -221,6 +221,9 @@ EXIT_ERROR "Please try again after 'git submodule update --init --recursive'"
 # For using the new version of protoc
 export OCCLUMINSTALLDIR=/opt/occlum/toolchains/gcc/x86_64-linux-gnu
 export PATH=$OCCLUMINSTALLDIR/bin:$PATH
+
+# Some libraries such as grpc is installed in /usr/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib:/usr/local/lib
 
 cd $THISDIR
 if [ "$OPT_DO_CLEAN" == 1 ] ; then

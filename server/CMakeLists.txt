@@ -80,7 +80,7 @@ add_untrusted_executable(
 )
 target_link_libraries(
     ${AECSAPP}
-    -lprotobuf
+    -lprotobuf -lgpr
     gRPC::grpc++_reflection
     -Wl,--start-group -laecs_uprotobuf -lua_ugrpc ${UAL_LIBS_LINK} -Wl,--end-group
     -Wl,-rpath=.:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64:/usr/lib/x86_64-linux-gnu:${SGX_LIBRARY_DIR}

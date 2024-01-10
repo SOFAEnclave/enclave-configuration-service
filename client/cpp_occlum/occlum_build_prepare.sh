@@ -146,7 +146,9 @@ protobuf_build() {
 }
 
 cares_check() {
-    [ -f "$INSTALLDIR/lib/libcares.so" ] || return 1
+    [ -f "$INSTALLDIR/lib/libcares.so" ] || \
+    [ -f "$INSTALLDIR/lib/libcares.a" ] || \
+    return 1
 }
 
 cares_build() {

@@ -48,12 +48,14 @@ add_library(
   ${AECS_CLIENT_LIB} SHARED
   ${LIB_SRCS}
 )
+
+set(GRPC_LIBS -lprotobuf -lz -lcares_static -laddress_sorting -lgpr -lgrpc -lgrpc++ -lgrpc++_reflection)
 target_link_libraries(
   ${AECS_CLIENT_LIB}
   -L/usr/local/occlum/x86_64-linux-gnu/lib
   yaml-cpp
-  -Wl,--start-group ${${UAL_LIBS_LINK}} -lprotobuf -lcares_static -laddress_sorting -lgpr -lgrpc -lgrpc++ -lgrpc++_reflection -Wl,--end-group
-  -Wl,-rpath=/lib
+  -Wl,--start-group ${UAL_LIBS_LINK} ${GRPC_LIBS} -Wl,--end-group
+  -Wl,-rpath=.:/lib:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64
 )
 add_dependencies(${AECS_CLIENT_LIB} yaml-cpp ${UAL_LIBS_NAME})
 
@@ -66,6 +68,6 @@ target_link_libraries(
   -L/usr/local/occlum/x86_64-linux-gnu/lib
   -lgflags_nothreads
   -Wl,--start-group -l${AECS_CLIENT_LIB} ${UAL_LIBS_LINK} -lz -lgrpc++ -lgrpc++_reflection -Wl,--end-group
-  -Wl,-rpath=/lib
+  -Wl,-rpath=.:/lib:/lib64:/usr/lib:/usr/local/lib:/usr/local/lib64
 )
 add_dependencies(${APP} gflags ${AECS_CLIENT_LIB} ${UAL_LIBS_NAME})

@@ -43,6 +43,7 @@ include_directories(${UAL_TOP_DIR}/include/sgx)
 # How to use UAL
 SET(UAL_LIBS_LINK -lual -lprotobuf -lcurl_static -lssl -lcrypto)
 SET(UAL_LIBS_NAME ual)
+set(UAL_U_LIBS_DEPS -lprotobuf -lcurl_static -lssl -lcrypto)
 
 # Build the third party libraries
 add_subdirectory(${AECS_TOP_DIR}/third_party/gflags ${CMAKE_BINARY_DIR}/gflags)
