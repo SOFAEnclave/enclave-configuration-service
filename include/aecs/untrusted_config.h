@@ -28,6 +28,8 @@ constexpr char kAecsConfServerEnclave[] = "aecs_server_enclave";
 constexpr char kAecsEnvRpcRemoteServer[] = "AECS_ROOT_SERVER";
 constexpr char kAecsEnvRpcRemotePort[] = "AECS_ROOT_PORT";
 constexpr char kAecsEnvRpcPort[] = "AECS_RPC_PORT";
+constexpr char kAecsEnvStorageLib[] = "AECS_STORAGE_BACKEND_LIB";
+constexpr char kAecsEnvAdminPwHash[] = "AECS_ADMIN_PASSWORD_HASH";
 
 #define AECS_CONF_STR(name) JSON_CONF_STR(kAecsConfFile, (name))
 #define AECS_CONF_FILE_STR(name) GetConfFileStr(kAecsConfFile, (name))

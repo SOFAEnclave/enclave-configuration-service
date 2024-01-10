@@ -31,7 +31,8 @@ int SGX_CDECL main(void) {
   kubetee::AecsAdminInitializeRequest req;
   kubetee::AecsAdminInitializeResponse res;
   kubetee::common::DataBytes public_key(AECS_CONF_STR(kAecsConfAdminPubKey));
-  std::string password_hash = AECS_CONF_STR(kAecsConfAdminPasswordHash);
+  std::string password_hash = AECS_ENV_CONF_STR(kAecsEnvAdminPwHash,
+                                                kAecsConfAdminPasswordHash);
   kubetee::AdminAuth* aecs_admin_auth = req.mutable_admin();
   aecs_admin_auth->set_public_key(public_key.FromBase64().GetStr());
   aecs_admin_auth->set_password_hash(password_hash);

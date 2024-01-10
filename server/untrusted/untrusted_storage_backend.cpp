@@ -24,7 +24,9 @@ namespace aecs {
 namespace untrusted {
 
 AecsStorageBackend::AecsStorageBackend() {
-  std::string libpath = AECS_CONF_STR(kAecsConfBackendLib);
+  std::string libpath =
+      AECS_ENV_CONF_STR(kAecsEnvStorageLib, kAecsConfBackendLib);
+  TEE_LOG_INFO("Storage backend library: %s", libpath.c_str());
   dlopen_lib_ = dlopen(libpath.c_str(), RTLD_LAZY);
   if (!dlopen_lib_) {
     TEE_LOG_ERROR("Fail to open library: %s", libpath.c_str());
