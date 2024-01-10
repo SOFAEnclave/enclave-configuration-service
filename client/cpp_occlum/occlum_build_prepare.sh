@@ -62,6 +62,14 @@ TRYGET() {
     fi
 }
 
+REQUIRE_SUCCESS() {
+    local count=1
+    while ! $@ ; do
+        let count+=1
+        echo "[Try again: $count] $@"
+    done
+}
+
 GITGET_GRPC() {
     GRPC_SRC_DIR=$DEPSDIR/$GRPCDIR
     if [ -d $GRPC_SRC_DIR/third_party/protobuf/cmake ] ; then
@@ -72,17 +80,17 @@ GITGET_GRPC() {
     LOG_DEBUG "Preparing source code: grpc ..."
     #rm -rf $GRPC_SRC_DIR && \
     mkdir -p $GRPC_SRC_DIR && cd $GRPC_SRC_DIR
-    git clone https://github.com/grpc/grpc.git .
+    REQUIRE_SUCCESS git clone https://github.com/grpc/grpc.git .
     git checkout tags/v1.24.3
     #git submodule update --init --recursive
     cd $GRPC_SRC_DIR/third_party/cares/cares
-    git submodule update --init .
+    REQUIRE_SUCCESS git submodule update --init .
     git checkout tags/cares-1_15_0
     cd $GRPC_SRC_DIR/third_party/protobuf
-    git submodule update --init .
+    REQUIRE_SUCCESS git submodule update --init .
     git checkout tags/v3.21.6
     cd $GRPC_SRC_DIR/third_party/abseil-cpp
-    git submodule update --init .
+    REQUIRE_SUCCESS git submodule update --init .
     return 0
 }
 
